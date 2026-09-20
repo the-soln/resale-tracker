@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resale Tracker</title>
+<meta name="theme-color" content="#2a78d6">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Resale">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f4f1; --surface: #fcfcfb; --surface-2: #f0efec; --border: #e2e1dc;
+    --text: #0b0b0b; --text-2: #52514e; --text-3: #8a8985;
+    --accent: #2a78d6; --accent-ink: #ffffff;
+    --pos: #2a78d6; --neg: #e34948; --grid: #e6e5e0;
+    --good-bg: #e3f5ec; --good-fg: #0f6b3f;
+    --warn-bg: #fdf0d5; --warn-fg: #8a5a00;
+    --info-bg: #e2edfb; --info-fg: #1c5cab;
+    --muted-bg: #ecebe7; --muted-fg: #52514e;
+    --shadow: 0 8px 30px rgba(0,0,0,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      color-scheme: dark;
+      --bg: #121211; --surface: #1a1a19; --surface-2: #242423; --border: #33332f;
+      --text: #ffffff; --text-2: #c3c2b7; --text-3: #8a8985;
+      --accent: #3987e5; --accent-ink: #ffffff;
+      --pos: #3987e5; --neg: #e66767; --grid: #2c2c2a;
+      --good-bg: #123526; --good-fg: #6fd39f;
+      --warn-bg: #3a2a08; --warn-fg: #f0c060;
+      --info-bg: #14294a; --info-fg: #86b6ef;
+      --muted-bg: #2a2a28; --muted-fg: #c3c2b7;
+      --shadow: 0 8px 30px rgba(0,0,0,.5);
+    }
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding-bottom: env(safe-area-inset-bottom); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 20px 60px; }
+
+  header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  header h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
+  header h1 small { color: var(--text-3); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  .btn { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 7px 12px; cursor: pointer; white-space: nowrap; }
+  .btn:hover { background: var(--surface-2); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn.danger { color: var(--neg); }
+  .btn.sm { padding: 4px 8px; font-size: 12px; border-radius: 6px; }
+  .btn.ghost { border-color: transparent; background: transparent; }
+  .btn:disabled { opacity: .5; cursor: default; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .tile { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; }
+  .tile .lbl { font-size: 12px; color: var(--text-2); }
+  .tile .val { font-size: 22px; font-weight: 600; margin-top: 2px; letter-spacing: -.01em; font-variant-numeric: tabular-nums; }
+  .tile .sub { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 14px; }
+  .panel h2 { font-size: 14px; margin: 0 0 10px; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .panel h2 span { color: var(--text-3); font-weight: 400; margin-left: 6px; }
+  .panel h2 .btn { margin-left: auto; }
+
+  .chart-wrap { position: relative; }
+  .chart-wrap svg { display: block; max-width: 100%; }
+  .chart-wrap .tip { position: absolute; pointer-events: none; background: var(--text); color: var(--bg); padding: 6px 9px; border-radius: 6px; font-size: 12px; white-space: nowrap; transform: translate(-50%, -110%); display: none; }
+  .bar { cursor: pointer; }
+  .bar.pos { fill: var(--pos); } .bar.neg { fill: var(--neg); }
+  .bar-hit { fill: transparent; }
+  .bar:hover { opacity: .8; }
+  .axis-txt { fill: var(--text-3); font-size: 11px; }
+  .grid-line { stroke: var(--grid); stroke-width: 1; }
+  .baseline { stroke: var(--text-3); stroke-width: 1; }
+
+  /* funds */
+  .accts { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+  .acct { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; cursor: pointer; background: var(--bg); }
+  .acct:hover { background: var(--surface-2); }
+  .acct .nm { font-weight: 600; display: flex; justify-content: space-between; gap: 6px; }
+  .acct .nm small { color: var(--text-3); font-weight: 400; }
+  .acct .bal { font-size: 20px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
+  .acct .det { font-size: 12px; color: var(--text-3); }
+  .adj-list { margin-top: 10px; border-top: 1px solid var(--border); }
+  .adj-list .row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .adj-list .row span:last-child { font-variant-numeric: tabular-nums; }
+  .adj-list .row .del { color: var(--text-3); cursor: pointer; margin-left: 6px; }
+  .adj-add { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; margin-top: 8px; align-items: end; }
+
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; }
+  .filters input, .filters select { border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 7px 10px; }
+  .filters input[type=search] { flex: 1; min-width: 160px; }
+
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); vertical-align: middle; white-space: nowrap; }
+  th { font-size: 12px; color: var(--text-2); font-weight: 600; cursor: pointer; user-select: none; position: sticky; top: 0; background: var(--surface); }
+  th.sorted.asc::after { content: " ↑"; } th.sorted.desc::after { content: " ↓"; }
+  td.num, th.num { text-align: right; }
+  tbody tr { cursor: pointer; }
+  tbody tr:hover td { background: var(--surface-2); }
+  td .name { font-weight: 600; }
+  td .meta, .card .meta { font-size: 12px; color: var(--text-3); }
+  .pos-t { color: var(--good-fg); } .neg-t { color: var(--neg); }
+  .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+  .badge.stock { background: var(--muted-bg); color: var(--muted-fg); }
+  .badge.listed { background: var(--info-bg); color: var(--info-fg); }
+  .badge.partial { background: var(--warn-bg); color: var(--warn-fg); }
+  .badge.sold { background: var(--good-bg); color: var(--good-fg); }
+  .actions { display: flex; gap: 4px; }
+  .empty { text-align: center; color: var(--text-3); padding: 40px 10px; white-space: normal; }
+  tfoot td { font-weight: 600; border-top: 2px solid var(--border); border-bottom: 0; background: var(--surface); }
+
+  /* mobile card list */
+  .cards { display: none; }
+  .card { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; background: var(--bg); }
+  .card .top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+  .card .name { font-weight: 600; }
+  .card .nums { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-top: 8px; font-variant-numeric: tabular-nums; }
+  .card .nums div { font-size: 13px; }
+  .card .nums small { display: block; font-size: 11px; color: var(--text-3); }
+  .card .foot { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; }
+  .cards .sum { padding: 8px 4px; font-size: 13px; color: var(--text-2); display: flex; justify-content: space-between; }
+
+  /* modal */
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-start; justify-content: center; padding: 30px 12px; overflow-y: auto; z-index: 10; }
+  .modal.open { display: flex; }
+  .dialog { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 680px; padding: 18px 20px; box-shadow: var(--shadow); }
+  .dialog h3 { margin: 0 0 14px; font-size: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 12px; }
+  .grid .full { grid-column: 1 / -1; }
+  label { display: block; font-size: 12px; color: var(--text-2); margin-bottom: 4px; }
+  .field input, .field select, .field textarea { width: 100%; border: 1px solid var(--border); background: var(--bg); border-radius: 8px; padding: 7px 10px; }
+  .field textarea { min-height: 60px; resize: vertical; }
+  .field.check { display: flex; align-items: center; gap: 8px; padding-top: 22px; }
+  .field.check label { margin: 0; color: var(--text); }
+  .field.check input { width: auto; }
+  .inline { display: flex; gap: 6px; }
+  .inline input { flex: 1; min-width: 0; }
+  fieldset { border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px 12px; margin: 0; }
+  legend { font-size: 12px; color: var(--text-2); padding: 0 4px; }
+  .preview { margin-top: 10px; font-size: 13px; color: var(--text-2); display: flex; gap: 18px; flex-wrap: wrap; }
+  .preview b { color: var(--text); font-variant-numeric: tabular-nums; }
+  .dlg-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+  .dlg-actions .right { display: flex; gap: 8px; }
+  .hint { font-size: 12px; color: var(--text-3); margin-top: 6px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; max-width: 90vw; text-align: center; }
+  .toast.show { opacity: 1; }
+
+  /* scanner */
+  #reader { width: 100%; border-radius: 10px; overflow: hidden; background: #000; min-height: 240px; }
+  #reader video { width: 100% !important; border-radius: 10px; }
+  .scan-status { margin-top: 8px; font-size: 13px; color: var(--text-2); min-height: 20px; }
+
+  .install-bar { display: none; background: var(--info-bg); color: var(--info-fg); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; font-size: 13px; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .install-bar.show { display: flex; }
+  .install-bar .btn { margin-left: auto; }
+
+  @media (max-width: 720px) {
+    .wrap { padding: 12px 12px 40px; }
+    header { margin-bottom: 12px; }
+    header h1 small { display: none; }
+    .toolbar { width: 100%; }
+    .toolbar .btn { flex: 1; text-align: center; padding: 9px 6px; }
+    .toolbar .desktop-only { display: none; }
+    .tiles { grid-template-columns: 1fr 1fr; gap: 8px; }
+    .tile { padding: 10px 12px; } .tile .val { font-size: 18px; }
+    .table-wrap { display: none; }
+    .cards { display: block; }
+    .grid { grid-template-columns: 1fr 1fr; }
+    .modal { padding: 10px 8px; align-items: flex-end; }
+    .dialog { padding: 14px; border-radius: 12px; max-height: 92vh; overflow-y: auto; }
+    .adj-add { grid-template-columns: 1fr 1fr; }
+    .btn.sm { padding: 6px 10px; }
+  }
+  @media (min-width: 721px) { .mobile-only { display: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Resale Tracker <small id="storeNote">saved on this device</small></h1>
+    <div class="toolbar">
+      <button class="btn primary" id="scanBtn">📷 Scan</button>
+      <button class="btn primary" id="addBtn">+ Add item</button>
+      <button class="btn mobile-only" id="moreBtn">More ▾</button>
+      <button class="btn desktop-only" id="exportCsvBtn">Export CSV</button>
+      <button class="btn desktop-only" id="backupBtn">Backup</button>
+      <button class="btn desktop-only" id="restoreBtn">Restore</button>
+      <button class="btn desktop-only" id="settingsBtn">Settings</button>
+      <input type="file" id="restoreFile" accept="application/json" hidden>
+    </div>
+  </header>
+
+  <div class="install-bar" id="installBar"><span id="installMsg">Install this app on your phone for a full-screen experience and offline use.</span><button class="btn primary sm" id="installBtn">Install app</button><button class="btn ghost sm" id="installDismiss">✕</button></div>
+
+  <div class="tiles" id="tiles"></div>
+
+  <div class="panel">
+    <h2>Funds <span>cards and cash you buy inventory with</span><button class="btn sm" id="addAcctBtn">+ Add card</button></h2>
+    <div class="accts" id="accts"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Realized profit by month <span>after fees and shipping, last 12 months</span></h2>
+    <div class="chart-wrap" id="chart"><div class="tip" id="chartTip"></div></div>
+  </div>
+
+  <div class="panel">
+    <div class="filters">
+      <input type="search" id="q" placeholder="Search name, barcode, category, platform…">
+      <select id="fStatus">
+        <option value="">All statuses</option>
+        <option value="stock">In stock</option>
+        <option value="listed">Listed</option>
+        <option value="partial">Partially sold</option>
+        <option value="sold">Sold</option>
+        <option value="unsold">Unsold (any)</option>
+      </select>
+      <select id="fCategory"><option value="">All categories</option></select>
+      <select id="fPlatform"><option value="">All platforms</option></select>
+      <button class="btn ghost" id="clearFilters">Clear</button>
+    </div>
+    <div class="table-wrap">
+      <table id="tbl">
+        <thead><tr>
+          <th data-k="name">Item</th>
+          <th data-k="status">Status</th>
+          <th data-k="purchaseDate">Bought</th>
+          <th data-k="qty" class="num">Qty</th>
+          <th data-k="unitCost" class="num">Cost / unit</th>
+          <th data-k="expectedPrice" class="num">Expected</th>
+          <th data-k="soldPrice" class="num">Sold @</th>
+          <th data-k="potential" class="num">Potential</th>
+          <th data-k="realized" class="num">Realized</th>
+          <th data-k="roi" class="num">ROI</th>
+          <th></th>
+        </tr></thead>
+        <tbody id="rows"></tbody>
+        <tfoot id="foot"></tfoot>
+      </table>
+    </div>
+    <div class="cards" id="cards"></div>
+  </div>
+</div>
+
+<!-- More menu (mobile) -->
+<div class="modal" id="moreModal">
+  <div class="dialog" style="max-width:360px">
+    <h3>More</h3>
+    <div style="display:grid;gap:8px">
+      <button class="btn" data-more="exportCsvBtn">Export CSV</button>
+      <button class="btn" data-more="backupBtn">Backup to file</button>
+      <button class="btn" data-more="restoreBtn">Restore from file</button>
+      <button class="btn" data-more="settingsBtn">Settings</button>
+      <button class="btn" data-close>Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Item modal -->
+<div class="modal" id="itemModal">
+  <form class="dialog" id="itemForm" autocomplete="off">
+    <h3 id="itemTitle">Add item</h3>
+    <input type="hidden" name="id">
+    <div class="grid">
+      <div class="field full"><label>Barcode (UPC / EAN)</label>
+        <div class="inline"><input name="barcode" inputmode="numeric" placeholder="Scan or type"><button type="button" class="btn" id="formScanBtn">📷 Scan</button><button type="button" class="btn" id="lookupBtn" title="Look up product name">Look up</button></div>
+        <div class="hint" id="lookupStatus"></div>
+      </div>
+      <div class="field full"><label>Item name *</label><input name="name" required placeholder="e.g. Nike Dunk Low, size 10"></div>
+      <div class="field"><label>Category</label><input name="category" list="catList" placeholder="Shoes, Electronics…"></div>
+      <div class="field"><label>Bought from</label><input name="source" list="srcList" placeholder="Goodwill, FB Marketplace…"></div>
+      <div class="field"><label>Selling on</label><input name="platform" list="platList" placeholder="eBay, Poshmark…"></div>
+      <div class="field"><label>Purchase date</label><input name="purchaseDate" type="date"></div>
+      <div class="field"><label>Quantity</label><input name="qty" type="number" min="1" step="1" value="1" inputmode="numeric"></div>
+      <div class="field"><label>Buy price / unit</label><input name="buyPrice" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"></div>
+      <div class="field"><label>Extra cost / unit (tax, shipping in)</label><input name="inboundCost" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"></div>
+      <div class="field"><label>Paid with</label><select name="paidWith"><option value="">— not tracked —</option></select></div>
+      <div class="field"><label>Expected sale price / unit</label><input name="expectedPrice" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"></div>
+      <div class="field"><label>Platform fee %</label><input name="feePct" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label>Outbound shipping / unit (you pay)</label><input name="shipOut" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"></div>
+      <div class="field check"><input type="checkbox" name="listed" id="listedChk"><label for="listedChk">Currently listed for sale</label></div>
+    </div>
+    <fieldset style="margin-top:12px">
+      <legend>Sale (fill in when sold)</legend>
+      <div class="grid">
+        <div class="field"><label>Units sold</label><input name="qtySold" type="number" min="0" step="1" value="0" inputmode="numeric"></div>
+        <div class="field"><label>Sold price / unit</label><input name="soldPrice" type="number" min="0" step="0.01" placeholder="0.00" inputmode="decimal"></div>
+        <div class="field"><label>Sold date</label><input name="soldDate" type="date"></div>
+        <div class="field"><label>Payout deposited to</label><select name="payoutTo"><option value="">— not tracked —</option></select></div>
+      </div>
+    </fieldset>
+    <div class="field full" style="margin-top:12px"><label>Notes</label><textarea name="notes" placeholder="Condition, SKU, storage bin, buyer…"></textarea></div>
+    <div class="preview" id="preview"></div>
+    <div class="dlg-actions">
+      <button type="button" class="btn danger" id="deleteBtn" style="display:none">Delete</button>
+      <div class="right">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Quick sale modal -->
+<div class="modal" id="saleModal">
+  <form class="dialog" id="saleForm" style="max-width:460px">
+    <h3>Record sale</h3>
+    <input type="hidden" name="id">
+    <div class="grid">
+      <div class="field full"><div id="saleItemName" style="font-weight:600"></div><div class="hint" id="saleItemMeta"></div></div>
+      <div class="field"><label>Units sold now</label><input name="qty" type="number" min="1" step="1" value="1" inputmode="numeric"></div>
+      <div class="field"><label>Sold price / unit</label><input name="price" type="number" min="0" step="0.01" required inputmode="decimal"></div>
+      <div class="field"><label>Sold date</label><input name="date" type="date"></div>
+      <div class="field"><label>Platform fee %</label><input name="feePct" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label>Outbound shipping / unit</label><input name="shipOut" type="number" min="0" step="0.01" inputmode="decimal"></div>
+      <div class="field"><label>Payout deposited to</label><select name="payoutTo"><option value="">— not tracked —</option></select></div>
+    </div>
+    <div class="preview" id="salePreview"></div>
+    <div class="dlg-actions"><span></span><div class="right">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn primary">Save sale</button>
+    </div></div>
+  </form>
+</div>
+
+<!-- Account modal -->
+<div class="modal" id="acctModal">
+  <form class="dialog" id="acctForm" style="max-width:520px" autocomplete="off">
+    <h3 id="acctTitle">Add card</h3>
+    <input type="hidden" name="id">
+    <div class="grid">
+      <div class="field"><label>Name *</label><input name="name" required placeholder="Chase Visa, Cash, PayPal…"></div>
+      <div class="field"><label>Type</label><select name="kind"><option value="credit">Credit card</option><option value="debit">Debit card / bank</option><option value="cash">Cash</option><option value="payout">Payout account (PayPal, eBay…)</option></select></div>
+      <div class="field"><label id="startLbl">Starting balance</label><input name="start" type="number" step="0.01" placeholder="0.00" inputmode="decimal"></div>
+      <div class="field"><label>As of date</label><input name="startDate" type="date"></div>
+    </div>
+    <div class="hint">Purchases marked "Paid with" this card are deducted automatically. Sale payouts marked "deposited to" it are added. Use adjustments for payments, top-ups, or anything else.</div>
+    <div class="adj-list" id="adjList"></div>
+    <div class="adj-add">
+      <div class="field"><label>Adjustment</label><input id="adjAmt" type="number" step="0.01" placeholder="+ add / − spend" inputmode="decimal"></div>
+      <div class="field"><label>Note</label><input id="adjNote" placeholder="Paid statement, added cash…"></div>
+      <div class="field"><label>Date</label><input id="adjDate" type="date"></div>
+      <button type="button" class="btn" id="adjAddBtn">Add</button>
+    </div>
+    <div class="preview" id="acctPreview"></div>
+    <div class="dlg-actions">
+      <button type="button" class="btn danger" id="acctDeleteBtn" style="display:none">Delete</button>
+      <div class="right">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Scanner modal -->
+<div class="modal" id="scanModal">
+  <div class="dialog" style="max-width:520px">
+    <h3>Scan barcode</h3>
+    <div id="reader"></div>
+    <div class="scan-status" id="scanStatus">Starting camera…</div>
+    <div class="inline" style="margin-top:10px"><input id="manualCode" inputmode="numeric" placeholder="Or type the number under the barcode" style="border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:7px 10px"><button type="button" class="btn" id="manualCodeBtn">Use</button></div>
+    <div class="dlg-actions"><span></span><div class="right"><button type="button" class="btn" id="scanClose">Cancel</button></div></div>
+  </div>
+</div>
+
+<!-- Settings modal -->
+<div class="modal" id="settingsModal">
+  <form class="dialog" id="settingsForm" style="max-width:460px">
+    <h3>Settings</h3>
+    <div class="grid">
+      <div class="field"><label>Default platform fee %</label><input name="feePct" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div>
+      <div class="field"><label>Currency symbol</label><input name="currency" maxlength="4"></div>
+      <div class="field check full"><input type="checkbox" name="onlineLookup" id="onlineLookupChk"><label for="onlineLookupChk">Look up scanned barcodes online (Open Food/Products Facts)</label></div>
+    </div>
+    <div class="hint" style="margin-top:10px">Fee % is applied to the sale price (eBay ≈ 13.25%, Poshmark 20%, Mercari ≈ 10%+). You can override it per item.</div>
+    <div class="hint" id="versionNote"></div>
+    <div class="dlg-actions">
+      <button type="button" class="btn danger" id="wipeBtn">Delete all data</button>
+      <div class="right">
+        <button type="button" class="btn" data-close>Cancel</button>
+        <button type="submit" class="btn primary">Save</button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<datalist id="catList"></datalist>
+<datalist id="srcList"></datalist>
+<datalist id="platList"></datalist>
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" defer></script>
+<script>
+(() => {
+  const KEY = 'resaleTracker.v1';
+  const VERSION = '2.0';
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+
+  // ---------- state ----------
+  let state;
+  let sort = { k: 'purchaseDate', dir: 'desc' };
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) { const s = JSON.parse(raw); if (s && Array.isArray(s.items)) return withDefaults(s); }
+    } catch (e) { console.warn('load failed', e); }
+    return withDefaults({ items: [] });
+  }
+  function withDefaults(s) {
+    s.settings = Object.assign({ feePct: 13, currency: '$', onlineLookup: true }, s.settings || {});
+    s.items = (s.items || []).map(normalize);
+    s.accounts = (s.accounts || []).map(normalizeAcct);
+    return s;
+  }
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(state)); }
+    catch (e) { toast('Could not save (storage blocked?)'); }
+  }
+  const num = v => { const n = parseFloat(v); return Number.isFinite(n) ? n : 0; };
+  function normalize(it) {
+    return {
+      id: it.id || uid(), name: it.name || '', barcode: String(it.barcode || '').trim(), category: it.category || '', source: it.source || '', platform: it.platform || '',
+      purchaseDate: it.purchaseDate || '', qty: Math.max(1, Math.round(num(it.qty) || 1)),
+      buyPrice: num(it.buyPrice), inboundCost: num(it.inboundCost), expectedPrice: num(it.expectedPrice),
+      feePct: it.feePct === '' || it.feePct == null ? null : num(it.feePct), shipOut: num(it.shipOut), listed: !!it.listed,
+      paidWith: it.paidWith || '', payoutTo: it.payoutTo || '',
+      qtySold: Math.max(0, Math.round(num(it.qtySold))), soldPrice: num(it.soldPrice), soldDate: it.soldDate || '',
+      notes: it.notes || '', createdAt: it.createdAt || Date.now()
+    };
+  }
+  function normalizeAcct(a) {
+    return { id: a.id || uid(), name: a.name || '', kind: a.kind || 'credit', start: num(a.start), startDate: a.startDate || '',
+      adjustments: (a.adjustments || []).map(x => ({ id: x.id || uid(), date: x.date || '', amount: num(x.amount), note: x.note || '' })) };
+  }
+  const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+
+  // ---------- math ----------
+  function calc(it) {
+    const fee = (it.feePct == null ? state.settings.feePct : it.feePct) / 100;
+    const unitCost = it.buyPrice + it.inboundCost;
+    const qtySold = Math.min(it.qtySold, it.qty);
+    const qtyLeft = it.qty - qtySold;
+    const unitPotential = it.expectedPrice * (1 - fee) - it.shipOut - unitCost;
+    const unitRealized = it.soldPrice * (1 - fee) - it.shipOut - unitCost;
+    const potential = it.expectedPrice > 0 ? unitPotential * qtyLeft : 0;
+    const realized = unitRealized * qtySold;
+    const invested = unitCost * qtyLeft;
+    const costSold = unitCost * qtySold;
+    const revenue = it.soldPrice * qtySold;
+    const spent = unitCost * it.qty;                                   // what left your card at purchase
+    const payout = (it.soldPrice * (1 - fee) - it.shipOut) * qtySold;   // what the platform pays out
+    const status = qtySold >= it.qty ? 'sold' : qtySold > 0 ? 'partial' : it.listed ? 'listed' : 'stock';
+    const roi = qtySold > 0 && costSold > 0 ? realized / costSold : (qtyLeft > 0 && unitCost > 0 && it.expectedPrice > 0 ? unitPotential / unitCost : null);
+    return { fee, unitCost, qtySold, qtyLeft, unitPotential, unitRealized, potential, realized, invested, costSold, revenue, spent, payout, status, roi };
+  }
+  function acctBalances() {
+    const m = {};
+    for (const a of state.accounts) m[a.id] = { a, adj: a.adjustments.reduce((s, x) => s + x.amount, 0), spent: 0, deposits: 0, nSpent: 0, nDep: 0 };
+    for (const it of state.items) {
+      const c = calc(it);
+      if (it.paidWith && m[it.paidWith]) { m[it.paidWith].spent += c.spent; m[it.paidWith].nSpent++; }
+      if (it.payoutTo && m[it.payoutTo] && c.qtySold > 0) { m[it.payoutTo].deposits += c.payout; m[it.payoutTo].nDep++; }
+    }
+    for (const k in m) m[k].available = m[k].a.start + m[k].adj - m[k].spent + m[k].deposits;
+    return m;
+  }
+  const fmt = n => { const c = state.settings.currency; const s = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (n < -0.005 ? '−' : '') + c + s; };
+  const pct = n => n == null ? '—' : (n * 100).toFixed(0) + '%';
+  const signCls = n => n > 0.005 ? 'pos-t' : n < -0.005 ? 'neg-t' : '';
+  const fmtDate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' }) : '—';
+  const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+  const STATUS = { stock: 'In stock', listed: 'Listed', partial: 'Partial', sold: 'Sold' };
+  const KIND = { credit: 'credit card', debit: 'debit / bank', cash: 'cash', payout: 'payout account' };
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+
+  // ---------- render ----------
+  function render() {
+    renderTiles(); renderAccts(); renderChart(); renderFilterOptions(); renderTable(); renderDatalists();
+  }
+
+  function renderTiles() {
+    const t = { invested: 0, potential: 0, realized: 0, revenue: 0, costSold: 0, unitsLeft: 0, unitsSold: 0, itemsLeft: 0 };
+    for (const it of state.items) {
+      const c = calc(it);
+      t.invested += c.invested; t.potential += c.potential; t.realized += c.realized; t.revenue += c.revenue; t.costSold += c.costSold;
+      t.unitsLeft += c.qtyLeft; t.unitsSold += c.qtySold; if (c.qtyLeft > 0) t.itemsLeft++;
+    }
+    const roi = t.costSold > 0 ? t.realized / t.costSold : null;
+    const potRoi = t.invested > 0 ? t.potential / t.invested : null;
+    const bal = acctBalances(); const funds = Object.values(bal).filter(b => b.a.kind !== 'payout').reduce((s, b) => s + b.available, 0);
+    const tiles = [
+      ['Cash tied up', fmt(t.invested), `${t.itemsLeft} item${t.itemsLeft === 1 ? '' : 's'} · ${t.unitsLeft} unit${t.unitsLeft === 1 ? '' : 's'} unsold`],
+      ['Potential profit', fmt(t.potential), `on unsold at expected price · ${pct(potRoi)} ROI`, signCls(t.potential)],
+      ['Realized profit', fmt(t.realized), `${t.unitsSold} unit${t.unitsSold === 1 ? '' : 's'} sold · ${pct(roi)} ROI`, signCls(t.realized)],
+      ['Revenue', fmt(t.revenue), `cost of goods sold ${fmt(t.costSold)}`],
+      ['If everything sells', fmt(t.realized + t.potential), 'realized + potential', signCls(t.realized + t.potential)],
+    ];
+    if (state.accounts.length) tiles.splice(1, 0, ['Funds available', fmt(funds), `across ${state.accounts.filter(a => a.kind !== 'payout').length} card${state.accounts.length === 1 ? '' : 's'} to buy with`, signCls(funds)]);
+    $('#tiles').innerHTML = tiles.map(([l, v, s, cls]) => `<div class="tile"><div class="lbl">${l}</div><div class="val ${cls || ''}">${v}</div><div class="sub">${s}</div></div>`).join('');
+  }
+
+  function renderAccts() {
+    const bal = acctBalances();
+    if (!state.accounts.length) { $('#accts').innerHTML = `<div class="hint" style="margin:0">No cards yet. Add the card or cash you buy inventory with, and each item you mark "Paid with" will be deducted from it.</div>`; return; }
+    $('#accts').innerHTML = state.accounts.map(a => { const b = bal[a.id]; return `
+      <div class="acct" data-id="${a.id}">
+        <div class="nm"><span>${esc(a.name)}</span><small>${KIND[a.kind]}</small></div>
+        <div class="bal ${signCls(b.available)}">${fmt(b.available)}</div>
+        <div class="det">${a.kind === 'credit' ? 'left to spend' : 'balance'} · spent ${fmt(b.spent)} on ${b.nSpent} item${b.nSpent === 1 ? '' : 's'}${b.deposits ? ` · +${fmt(b.deposits)} payouts` : ''}</div>
+      </div>`; }).join('');
+  }
+
+  function renderChart() {
+    const months = [];
+    const now = new Date();
+    for (let i = 11; i >= 0; i--) {
+      const m = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({ key: `${m.getFullYear()}-${String(m.getMonth() + 1).padStart(2, '0')}`, label: m.toLocaleDateString(undefined, { month: 'short' }), yr: m.getFullYear(), v: 0, n: 0 });
+    }
+    const idx = Object.fromEntries(months.map((m, i) => [m.key, i]));
+    for (const it of state.items) {
+      const c = calc(it);
+      if (c.qtySold > 0 && it.soldDate && idx[it.soldDate.slice(0, 7)] != null) { const m = months[idx[it.soldDate.slice(0, 7)]]; m.v += c.realized; m.n += c.qtySold; }
+    }
+    const wrap = $('#chart'); const tip = $('#chartTip');
+    const W = Math.max(320, wrap.clientWidth || 1000), H = 200, padL = 50, padR = 8, padT = 14, padB = 26;
+    const rawMax = Math.max(...months.map(m => Math.abs(m.v)));
+    const maxAbs = rawMax > 1 ? rawMax : 100;
+    const hasNeg = months.some(m => m.v < -0.005);
+    const top = niceCeil(maxAbs), bottom = hasNeg ? -top : 0;
+    const y = v => padT + (top - v) / (top - bottom) * (H - padT - padB);
+    const bw = (W - padL - padR) / 12, barW = Math.min(40, bw * 0.55);
+    const ticks = hasNeg ? [top, top / 2, 0, -top / 2, -top] : [top, top / 2, 0];
+    let s = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="Realized profit by month">`;
+    for (const t of ticks) s += `<line class="${t === 0 ? 'baseline' : 'grid-line'}" x1="${padL}" x2="${W - padR}" y1="${y(t)}" y2="${y(t)}"/><text class="axis-txt" x="${padL - 6}" y="${y(t) + 4}" text-anchor="end">${shortMoney(t)}</text>`;
+    months.forEach((m, i) => {
+      const cx = padL + bw * i + bw / 2, x = cx - barW / 2;
+      const y0 = y(0), y1 = y(m.v), h = Math.abs(y1 - y0);
+      s += `<rect class="bar-hit" x="${padL + bw * i}" y="${padT}" width="${bw}" height="${H - padT - padB}" data-i="${i}"/>`;
+      if (Math.abs(m.v) > 0.005) {
+        const r = Math.min(4, h);
+        s += m.v >= 0
+          ? `<path class="bar pos" data-i="${i}" d="M${x},${y0} V${y1 + r} a${r},${r} 0 0 1 ${r},-${r} h${barW - 2 * r} a${r},${r} 0 0 1 ${r},${r} V${y0} Z"/>`
+          : `<path class="bar neg" data-i="${i}" d="M${x},${y0} V${y1 - r} a${r},${r} 0 0 0 ${r},${r} h${barW - 2 * r} a${r},${r} 0 0 0 ${r},-${r} V${y0} Z"/>`;
+      }
+      if (W >= 600 || i % 2 === 1) s += `<text class="axis-txt" x="${cx}" y="${H - 8}" text-anchor="middle">${m.label}</text>`;
+    });
+    s += '</svg>';
+    wrap.innerHTML = s; wrap.appendChild(tip);
+    const svg = $('svg', wrap);
+    const show = e => {
+      const el = e.target.closest('[data-i]'); if (!el) { tip.style.display = 'none'; return; }
+      const m = months[+el.dataset.i]; const r = wrap.getBoundingClientRect();
+      tip.textContent = `${m.label} ${m.yr}: ${fmt(m.v)} · ${m.n} unit${m.n === 1 ? '' : 's'}`;
+      tip.style.display = 'block'; tip.style.left = (e.clientX - r.left) + 'px'; tip.style.top = (e.clientY - r.top - 8) + 'px';
+    };
+    svg.addEventListener('mousemove', show); svg.addEventListener('click', show);
+    svg.addEventListener('mouseleave', () => tip.style.display = 'none');
+  }
+  function niceCeil(v) { const p = Math.pow(10, Math.floor(Math.log10(v))); const f = v / p; const n = f <= 1 ? 1 : f <= 2 ? 2 : f <= 5 ? 5 : 10; return n * p; }
+  function shortMoney(v) { const a = Math.abs(v); const c = state.settings.currency; const s = a >= 1000 ? (a / 1000).toFixed(a % 1000 ? 1 : 0) + 'k' : String(Math.round(a)); return (v < 0 ? '−' : '') + c + s; }
+
+  function renderFilterOptions() {
+    fill('#fCategory', 'All categories', uniq(state.items.map(i => i.category)));
+    fill('#fPlatform', 'All platforms', uniq(state.items.map(i => i.platform)));
+  }
+  function fill(sel, first, vals) { const el = $(sel); const cur = el.value; el.innerHTML = `<option value="">${first}</option>` + vals.map(v => `<option>${esc(v)}</option>`).join(''); el.value = vals.includes(cur) ? cur : ''; }
+  const uniq = a => [...new Set(a.filter(Boolean))].sort((x, y) => x.localeCompare(y));
+  function renderDatalists() {
+    $('#catList').innerHTML = uniq(state.items.map(i => i.category)).map(v => `<option value="${esc(v)}">`).join('');
+    $('#srcList').innerHTML = uniq(state.items.map(i => i.source)).map(v => `<option value="${esc(v)}">`).join('');
+    $('#platList').innerHTML = uniq(state.items.map(i => i.platform)).map(v => `<option value="${esc(v)}">`).join('');
+  }
+  function acctOptions(sel, current, filterKind) {
+    const opts = state.accounts.filter(a => !filterKind || filterKind(a));
+    sel.innerHTML = `<option value="">— not tracked —</option>` + opts.map(a => `<option value="${a.id}">${esc(a.name)}</option>`).join('');
+    sel.value = opts.some(a => a.id === current) ? current : '';
+  }
+
+  function visibleRows() {
+    const q = $('#q').value.trim().toLowerCase(), st = $('#fStatus').value, cat = $('#fCategory').value, pl = $('#fPlatform').value;
+    return state.items.map(it => ({ it, c: calc(it) })).filter(({ it, c }) => {
+      if (st === 'unsold' ? c.qtyLeft === 0 : st && c.status !== st) return false;
+      if (cat && it.category !== cat) return false;
+      if (pl && it.platform !== pl) return false;
+      if (q && ![it.name, it.barcode, it.category, it.platform, it.source, it.notes].join(' ').toLowerCase().includes(q)) return false;
+      return true;
+    }).sort((a, b) => {
+      const k = sort.k; const va = pick(a, k), vb = pick(b, k);
+      const r = typeof va === 'string' ? va.localeCompare(vb) : (va ?? -Infinity) - (vb ?? -Infinity);
+      return sort.dir === 'asc' ? r : -r;
+    });
+  }
+  function pick(r, k) { if (k in r.c) return r.c[k]; if (k === 'status') return ['stock', 'listed', 'partial', 'sold'].indexOf(r.c.status); const v = r.it[k]; return typeof v === 'string' ? v.toLowerCase() : v; }
+
+  function renderTable() {
+    const rows = visibleRows();
+    $$('th[data-k]').forEach(th => { th.classList.toggle('sorted', th.dataset.k === sort.k); th.classList.toggle('asc', th.dataset.k === sort.k && sort.dir === 'asc'); th.classList.toggle('desc', th.dataset.k === sort.k && sort.dir === 'desc'); });
+    if (!rows.length) {
+      const msg = state.items.length ? 'No items match these filters.' : 'No items yet. Tap <b>Scan</b> or <b>+ Add item</b> to start, or <button type="button" class="btn sm" data-sample>load sample data</button> to see how it works.';
+      $('#rows').innerHTML = `<tr><td colspan="11" class="empty">${msg}</td></tr>`;
+      $('#cards').innerHTML = `<div class="empty">${msg}</div>`;
+      $('#foot').innerHTML = '';
+      $$('[data-sample]').forEach(b => b.onclick = e => { e.stopPropagation(); loadSample(); });
+      return;
+    }
+    const meta = it => [it.category, it.platform ? 'on ' + it.platform : '', it.source ? 'from ' + it.source : ''].filter(Boolean).map(esc).join(' · ');
+    $('#rows').innerHTML = rows.map(({ it, c }) => `
+      <tr data-id="${it.id}">
+        <td><div class="name">${esc(it.name)}</div><div class="meta">${meta(it)}</div></td>
+        <td><span class="badge ${c.status}">${STATUS[c.status]}</span></td>
+        <td>${fmtDate(it.purchaseDate)}</td>
+        <td class="num">${c.qtySold > 0 && c.qtyLeft > 0 ? `${c.qtySold}/${it.qty}` : it.qty}</td>
+        <td class="num">${fmt(c.unitCost)}</td>
+        <td class="num">${it.expectedPrice ? fmt(it.expectedPrice) : '—'}</td>
+        <td class="num">${c.qtySold ? fmt(it.soldPrice) : '—'}</td>
+        <td class="num ${signCls(c.potential)}">${c.qtyLeft && it.expectedPrice ? fmt(c.potential) : '—'}</td>
+        <td class="num ${signCls(c.realized)}">${c.qtySold ? fmt(c.realized) : '—'}</td>
+        <td class="num">${pct(c.roi)}</td>
+        <td><div class="actions">${c.qtyLeft ? `<button type="button" class="btn sm" data-act="sale">Sold</button>` : ''}<button type="button" class="btn sm" data-act="edit">Edit</button></div></td>
+      </tr>`).join('');
+    $('#cards').innerHTML = rows.map(({ it, c }) => `
+      <div class="card" data-id="${it.id}">
+        <div class="top"><div><div class="name">${esc(it.name)}</div><div class="meta">${meta(it)}</div></div><span class="badge ${c.status}">${STATUS[c.status]}</span></div>
+        <div class="nums">
+          <div><small>Cost${it.qty > 1 ? ` × ${c.qtySold > 0 && c.qtyLeft > 0 ? `${c.qtySold}/${it.qty}` : it.qty}` : ''}</small>${fmt(c.unitCost)}</div>
+          ${c.qtySold ? `<div><small>Realized</small><span class="${signCls(c.realized)}">${fmt(c.realized)}</span></div>` : `<div><small>Expected</small>${it.expectedPrice ? fmt(it.expectedPrice) : '—'}</div>`}
+          ${c.qtyLeft && it.expectedPrice ? `<div><small>Potential</small><span class="${signCls(c.potential)}">${fmt(c.potential)}</span></div>` : `<div><small>ROI</small>${pct(c.roi)}</div>`}
+        </div>
+        <div class="foot"><span class="meta">${fmtDate(it.purchaseDate)}</span><div class="actions">${c.qtyLeft ? `<button type="button" class="btn sm" data-act="sale">Sold</button>` : ''}<button type="button" class="btn sm" data-act="edit">Edit</button></div></div>
+      </div>`).join('');
+    const t = rows.reduce((a, { c }) => (a.inv += c.invested, a.pot += c.potential, a.rea += c.realized, a.n += 1, a), { inv: 0, pot: 0, rea: 0, n: 0 });
+    $('#foot').innerHTML = `<tr><td colspan="4">${t.n} item${t.n === 1 ? '' : 's'} shown</td><td class="num">${fmt(t.inv)}<div class="meta" style="font-weight:400">tied up</div></td><td></td><td></td><td class="num ${signCls(t.pot)}">${fmt(t.pot)}</td><td class="num ${signCls(t.rea)}">${fmt(t.rea)}</td><td></td><td></td></tr>`;
+    $('#cards').insertAdjacentHTML('beforeend', `<div class="sum"><span>${t.n} item${t.n === 1 ? '' : 's'} · ${fmt(t.inv)} tied up</span><span>potential <b class="${signCls(t.pot)}">${fmt(t.pot)}</b> · realized <b class="${signCls(t.rea)}">${fmt(t.rea)}</b></span></div>`);
+  }
+
+  // ---------- item modal ----------
+  const itemModal = $('#itemModal'), itemForm = $('#itemForm');
+  function openItem(it, prefill) {
+    itemForm.reset();
+    $('#itemTitle').textContent = it ? 'Edit item' : 'Add item';
+    $('#deleteBtn').style.display = it ? '' : 'none';
+    $('#lookupStatus').textContent = '';
+    const f = itemForm.elements;
+    const lastAcct = state.items.slice().sort((a, b) => b.createdAt - a.createdAt).find(i => i.paidWith)?.paidWith || '';
+    const src = it || Object.assign({ purchaseDate: today(), qty: 1, qtySold: 0, feePct: null, paidWith: lastAcct }, prefill || {});
+    acctOptions(f.paidWith, src.paidWith, a => a.kind !== 'payout');
+    acctOptions(f.payoutTo, src.payoutTo);
+    for (const el of f) {
+      if (!el.name || el.tagName === 'SELECT') continue;
+      const v = src[el.name];
+      if (el.type === 'checkbox') el.checked = !!v;
+      else if (el.type === 'number') el.value = v == null || (v === 0 && !['qty', 'qtySold'].includes(el.name)) ? '' : v;
+      else el.value = v ?? '';
+    }
+    f.feePct.placeholder = `default ${state.settings.feePct}%`;
+    updatePreview();
+    itemModal.classList.add('open');
+    if (!it && !prefill?.barcode) setTimeout(() => f.name.focus(), 50);
+  }
+  function readItemForm() {
+    const f = itemForm.elements; const o = {};
+    for (const el of f) { if (!el.name) continue; o[el.name] = el.type === 'checkbox' ? el.checked : el.value; }
+    if (o.feePct === '') o.feePct = null;
+    return o;
+  }
+  function updatePreview() {
+    const it = normalize(readItemForm()); const c = calc(it);
+    const parts = [
+      `Cost/unit <b>${fmt(c.unitCost)}</b>`,
+      it.expectedPrice ? `Profit/unit at expected <b class="${signCls(c.unitPotential)}">${fmt(c.unitPotential)}</b>` : '',
+      c.qtyLeft && it.expectedPrice ? `Potential (${c.qtyLeft} left) <b class="${signCls(c.potential)}">${fmt(c.potential)}</b>` : '',
+      c.qtySold ? `Realized (${c.qtySold} sold) <b class="${signCls(c.realized)}">${fmt(c.realized)}</b>` : '',
+      `Fee <b>${(c.fee * 100).toFixed(1)}%</b>`
+    ];
+    if (it.paidWith) {
+      const bal = acctBalances()[it.paidWith];
+      if (bal) { const existing = state.items.find(i => i.id === it.id); const prev = existing && existing.paidWith === it.paidWith ? calc(existing).spent : 0; const after = bal.available + prev - c.spent; parts.push(`${esc(bal.a.name)} after this <b class="${signCls(after)}">${fmt(after)}</b>`); }
+    }
+    $('#preview').innerHTML = parts.filter(Boolean).join('');
+  }
+  itemForm.addEventListener('input', updatePreview);
+  itemForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const raw = readItemForm(); const existing = state.items.find(i => i.id === raw.id);
+    const it = normalize(Object.assign({}, existing || {}, raw, { id: existing ? existing.id : undefined }));
+    if (it.qtySold > it.qty) it.qtySold = it.qty;
+    if (it.qtySold > 0 && !it.soldDate) it.soldDate = today();
+    if (existing) Object.assign(existing, it); else state.items.push(it);
+    save(); render(); closeModals(); toast(existing ? 'Item updated' : 'Item added');
+  });
+  $('#deleteBtn').onclick = () => {
+    const id = itemForm.elements.id.value; const it = state.items.find(i => i.id === id);
+    if (it && confirm(`Delete "${it.name}"? This cannot be undone.`)) { state.items = state.items.filter(i => i.id !== id); save(); render(); closeModals(); toast('Item deleted'); }
+  };
+
+  // ---------- barcode ----------
+  let scanner = null, scanTarget = null; // scanTarget: 'form' or 'new'
+  function openScanner(target) {
+    scanTarget = target;
+    $('#scanStatus').textContent = 'Starting camera…'; $('#manualCode').value = '';
+    $('#scanModal').classList.add('open');
+    if (!window.Html5Qrcode) { $('#scanStatus').textContent = 'Scanner library not loaded (need internet the first time). You can type the code below.'; return; }
+    if (!navigator.mediaDevices?.getUserMedia) { $('#scanStatus').textContent = 'Camera not available here (needs HTTPS or the installed app). Type the code below.'; return; }
+    try {
+      scanner = new Html5Qrcode('reader', { verbose: false });
+      const cfg = { fps: 10, qrbox: { width: 260, height: 140 }, aspectRatio: 1.333, experimentalFeatures: { useBarCodeDetectorIfSupported: true } };
+      scanner.start({ facingMode: 'environment' }, cfg, code => { stopScanner(); onScanned(code); }, () => {})
+        .then(() => { $('#scanStatus').textContent = 'Point the camera at the barcode.'; })
+        .catch(err => { $('#scanStatus').textContent = 'Could not start camera: ' + (err?.message || err) + '. Type the code below.'; scanner = null; });
+    } catch (err) { $('#scanStatus').textContent = 'Scanner error: ' + (err?.message || err); scanner = null; }
+  }
+  function stopScanner() { const s = scanner; scanner = null; if (s) s.stop().then(() => s.clear()).catch(() => {}); $('#scanModal').classList.remove('open'); }
+  $('#scanClose').onclick = stopScanner;
+  $('#manualCodeBtn').onclick = () => { const v = $('#manualCode').value.trim(); if (v) { stopScanner(); onScanned(v); } };
+  $('#manualCode').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#manualCodeBtn').click(); } });
+  function onScanned(code) {
+    code = String(code).trim();
+    if (navigator.vibrate) navigator.vibrate(40);
+    if (scanTarget === 'form') { itemForm.elements.barcode.value = code; }
+    else { openItem(null, { barcode: code }); }
+    lookupBarcode(code);
+  }
+  async function lookupBarcode(code) {
+    const st = $('#lookupStatus'); const f = itemForm.elements;
+    const known = state.items.filter(i => i.barcode && i.barcode === code).sort((a, b) => b.createdAt - a.createdAt)[0];
+    if (known) {
+      if (!f.name.value) f.name.value = known.name;
+      if (!f.category.value) f.category.value = known.category;
+      if (!f.platform.value) f.platform.value = known.platform;
+      if (!f.expectedPrice.value && known.expectedPrice) f.expectedPrice.value = known.expectedPrice;
+      if (!f.buyPrice.value && known.buyPrice) f.buyPrice.value = known.buyPrice;
+      if (!f.shipOut.value && known.shipOut) f.shipOut.value = known.shipOut;
+      if (f.feePct.value === '' && known.feePct != null) f.feePct.value = known.feePct;
+      st.innerHTML = `Matched an item you bought before: <b>${esc(known.name)}</b>`; updatePreview(); return;
+    }
+    const gl = `<a href="https://www.google.com/search?q=${encodeURIComponent(code)}" target="_blank" rel="noopener">search the web for ${esc(code)}</a>`;
+    if (!state.settings.onlineLookup) { st.innerHTML = `New barcode. ${gl} to find the product name.`; return; }
+    if (!navigator.onLine) { st.innerHTML = `New barcode (offline, no lookup). ${gl}`; return; }
+    st.textContent = 'Looking up product…';
+    const hit = await openFactsLookup(code);
+    if (hit) {
+      if (!f.name.value) f.name.value = hit.name;
+      if (!f.category.value && hit.category) f.category.value = hit.category;
+      st.innerHTML = `Found: <b>${esc(hit.name)}</b> (${esc(hit.src)}). Edit the name if needed.`; updatePreview();
+    } else {
+      st.innerHTML = `Not in the open product databases. ${gl}, then type the name.`;
+    }
+    if (!f.name.value) f.name.focus();
+  }
+  async function openFactsLookup(code) {
+    const srcs = [['Open Products Facts', 'https://world.openproductsfacts.org/api/v2/product/'], ['Open Food Facts', 'https://world.openfoodfacts.org/api/v2/product/'], ['Open Beauty Facts', 'https://world.openbeautyfacts.org/api/v2/product/']];
+    for (const [src, base] of srcs) {
+      try {
+        const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 6000);
+        const r = await fetch(base + encodeURIComponent(code) + '.json?fields=product_name,brands,categories', { signal: ctl.signal });
+        clearTimeout(t);
+        if (!r.ok) continue;
+        const j = await r.json(); const p = j.product;
+        if (j.status === 1 && p && (p.product_name || p.brands)) {
+          const name = [p.brands, p.product_name].filter(Boolean).join(' ');
+          const category = ((p.categories || '').split(',').pop() || '').trim().replace(/^[a-z]{2}:/, '');
+          return { name, category, src };
+        }
+      } catch (e) { /* try next */ }
+    }
+    return null;
+  }
+  $('#scanBtn').onclick = () => openScanner('new');
+  $('#formScanBtn').onclick = () => openScanner('form');
+  $('#lookupBtn').onclick = () => { const v = itemForm.elements.barcode.value.trim(); if (v) lookupBarcode(v); else $('#lookupStatus').textContent = 'Enter a barcode first.'; };
+
+  // ---------- sale modal ----------
+  const saleModal = $('#saleModal'), saleForm = $('#saleForm');
+  function openSale(it) {
+    const c = calc(it); const f = saleForm.elements;
+    saleForm.reset();
+    f.id.value = it.id; f.qty.value = 1; f.qty.max = c.qtyLeft;
+    f.price.value = it.expectedPrice || ''; f.date.value = today();
+    f.feePct.value = it.feePct == null ? '' : it.feePct; f.feePct.placeholder = `default ${state.settings.feePct}%`;
+    f.shipOut.value = it.shipOut || '';
+    const lastPayout = it.payoutTo || state.items.slice().sort((a, b) => b.createdAt - a.createdAt).find(i => i.payoutTo)?.payoutTo || '';
+    acctOptions(f.payoutTo, lastPayout);
+    $('#saleItemName').textContent = it.name;
+    $('#saleItemMeta').textContent = `${c.qtyLeft} unit${c.qtyLeft === 1 ? '' : 's'} left · cost ${fmt(c.unitCost)}/unit`;
+    updateSalePreview(); saleModal.classList.add('open');
+    setTimeout(() => f.price.select(), 50);
+  }
+  function updateSalePreview() {
+    const f = saleForm.elements; const it = state.items.find(i => i.id === f.id.value); if (!it) return;
+    const fee = (f.feePct.value === '' ? state.settings.feePct : num(f.feePct.value)) / 100;
+    const q = Math.max(1, Math.round(num(f.qty.value)));
+    const payout = (num(f.price.value) * (1 - fee) - num(f.shipOut.value)) * q;
+    const unit = num(f.price.value) * (1 - fee) - num(f.shipOut.value) - (it.buyPrice + it.inboundCost);
+    $('#salePreview').innerHTML = `Profit/unit <b class="${signCls(unit)}">${fmt(unit)}</b> Total profit <b class="${signCls(unit * q)}">${fmt(unit * q)}</b> Payout <b>${fmt(payout)}</b>`;
+  }
+  saleForm.addEventListener('input', updateSalePreview);
+  saleForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const f = saleForm.elements; const it = state.items.find(i => i.id === f.id.value); if (!it) return;
+    const c = calc(it); const q = Math.min(c.qtyLeft, Math.max(1, Math.round(num(f.qty.value)))); const price = num(f.price.value);
+    // weighted-average sold price across all units sold so far
+    it.soldPrice = c.qtySold > 0 ? (it.soldPrice * c.qtySold + price * q) / (c.qtySold + q) : price;
+    it.qtySold = c.qtySold + q; it.soldDate = f.date.value || today();
+    it.feePct = f.feePct.value === '' ? null : num(f.feePct.value); it.shipOut = num(f.shipOut.value); it.payoutTo = f.payoutTo.value;
+    const profit = (price * (1 - calc(it).fee) - it.shipOut - c.unitCost) * q;
+    save(); render(); closeModals(); toast(`Sale recorded: ${fmt(profit)} profit`);
+  });
+
+  // ---------- accounts ----------
+  const acctModal = $('#acctModal'), acctForm = $('#acctForm');
+  let editingAdj = [];
+  function openAcct(a) {
+    acctForm.reset();
+    const f = acctForm.elements;
+    $('#acctTitle').textContent = a ? 'Edit card' : 'Add card';
+    $('#acctDeleteBtn').style.display = a ? '' : 'none';
+    f.id.value = a ? a.id : ''; f.name.value = a ? a.name : ''; f.kind.value = a ? a.kind : 'credit';
+    f.start.value = a ? a.start : ''; f.startDate.value = a ? a.startDate : today();
+    editingAdj = a ? a.adjustments.map(x => ({ ...x })) : [];
+    $('#adjDate').value = today(); $('#adjAmt').value = ''; $('#adjNote').value = '';
+    renderAdj(); updateAcctPreview();
+    acctModal.classList.add('open');
+    setTimeout(() => f.name.focus(), 50);
+  }
+  function renderAdj() {
+    $('#adjList').innerHTML = editingAdj.length ? editingAdj.slice().sort((x, y) => (y.date || '').localeCompare(x.date || '')).map(x => `<div class="row"><span>${fmtDate(x.date)} · ${esc(x.note) || 'adjustment'}</span><span class="${signCls(x.amount)}">${x.amount >= 0 ? '+' : ''}${fmt(x.amount)}<span class="del" data-adj="${x.id}" title="Remove">✕</span></span></div>`).join('') : '';
+    $$('#adjList .del').forEach(d => d.onclick = () => { editingAdj = editingAdj.filter(x => x.id !== d.dataset.adj); renderAdj(); updateAcctPreview(); });
+    $('#startLbl').textContent = acctForm.elements.kind.value === 'credit' ? 'Available credit to start' : 'Starting balance';
+  }
+  function updateAcctPreview() {
+    const f = acctForm.elements; const id = f.id.value;
+    const bal = id ? acctBalances()[id] : null;
+    const adj = editingAdj.reduce((s, x) => s + x.amount, 0);
+    const avail = num(f.start.value) + adj - (bal ? bal.spent : 0) + (bal ? bal.deposits : 0);
+    $('#acctPreview').innerHTML = `Adjustments <b class="${signCls(adj)}">${fmt(adj)}</b>${bal ? ` Spent on items <b>${fmt(bal.spent)}</b> Payouts <b>${fmt(bal.deposits)}</b>` : ''} Available now <b class="${signCls(avail)}">${fmt(avail)}</b>`;
+  }
+  acctForm.addEventListener('input', () => { renderAdj(); updateAcctPreview(); });
+  $('#adjAddBtn').onclick = () => {
+    const amt = num($('#adjAmt').value); if (!amt) { $('#adjAmt').focus(); return; }
+    editingAdj.push({ id: uid(), date: $('#adjDate').value || today(), amount: amt, note: $('#adjNote').value.trim() });
+    $('#adjAmt').value = ''; $('#adjNote').value = ''; renderAdj(); updateAcctPreview();
+  };
+  acctForm.addEventListener('submit', e => {
+    e.preventDefault();
+    const f = acctForm.elements; const existing = state.accounts.find(a => a.id === f.id.value);
+    const a = normalizeAcct({ id: existing?.id, name: f.name.value.trim(), kind: f.kind.value, start: f.start.value, startDate: f.startDate.value, adjustments: editingAdj });
+    if (existing) Object.assign(existing, a); else state.accounts.push(a);
+    save(); render(); closeModals(); toast(existing ? 'Card updated' : 'Card added');
+  });
+  $('#acctDeleteBtn').onclick = () => {
+    const id = acctForm.elements.id.value; const a = state.accounts.find(x => x.id === id); if (!a) return;
+    const n = state.items.filter(i => i.paidWith === id || i.payoutTo === id).length;
+    if (confirm(`Delete "${a.name}"?${n ? ` ${n} item${n === 1 ? '' : 's'} reference it; they will be kept but no longer tracked to a card.` : ''}`)) {
+      state.accounts = state.accounts.filter(x => x.id !== id);
+      for (const it of state.items) { if (it.paidWith === id) it.paidWith = ''; if (it.payoutTo === id) it.payoutTo = ''; }
+      save(); render(); closeModals(); toast('Card deleted');
+    }
+  };
+  $('#addAcctBtn').onclick = () => openAcct(null);
+  $('#accts').addEventListener('click', e => { const el = e.target.closest('.acct[data-id]'); if (!el) return; const a = state.accounts.find(x => x.id === el.dataset.id); if (a) openAcct(a); });
+
+  // ---------- settings ----------
+  const settingsModal = $('#settingsModal'), settingsForm = $('#settingsForm');
+  $('#settingsBtn').onclick = () => { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; settingsModal.classList.add('open'); };
+  settingsForm.addEventListener('submit', e => {
+    e.preventDefault(); const f = settingsForm.elements;
+    state.settings.feePct = num(f.feePct.value); state.settings.currency = f.currency.value || '$'; state.settings.onlineLookup = f.onlineLookup.checked;
+    save(); render(); closeModals(); toast('Settings saved');
+  });
+  $('#wipeBtn').onclick = () => { if (confirm('Delete ALL items and cards? Make a backup first if you want to keep them.') && confirm('Really delete everything?')) { state.items = []; state.accounts = []; save(); render(); closeModals(); toast('All data deleted'); } };
+
+  // ---------- backup / restore / csv ----------
+  $('#backupBtn').onclick = () => download(`resale-backup-${today()}.json`, JSON.stringify(state, null, 2), 'application/json');
+  $('#restoreBtn').onclick = () => $('#restoreFile').click();
+  $('#restoreFile').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    try {
+      const s = JSON.parse(await file.text());
+      if (!s || !Array.isArray(s.items)) throw new Error('not a backup file');
+      const mode = state.items.length ? (confirm(`Backup has ${s.items.length} items. OK = replace your current ${state.items.length} items. Cancel = merge (add new, update matching).`) ? 'replace' : 'merge') : 'replace';
+      if (mode === 'replace') state = withDefaults(s);
+      else {
+        const byId = Object.fromEntries(state.items.map(i => [i.id, i])); for (const it of s.items.map(normalize)) { if (byId[it.id]) Object.assign(byId[it.id], it); else state.items.push(it); }
+        const aById = Object.fromEntries(state.accounts.map(a => [a.id, a])); for (const a of (s.accounts || []).map(normalizeAcct)) { if (aById[a.id]) Object.assign(aById[a.id], a); else state.accounts.push(a); }
+      }
+      save(); render(); toast(`Restored ${s.items.length} items (${mode})`);
+    } catch (err) { alert('Could not restore: ' + err.message); }
+    e.target.value = '';
+  });
+  $('#exportCsvBtn').onclick = () => {
+    const names = Object.fromEntries(state.accounts.map(a => [a.id, a.name]));
+    const cols = ['name', 'barcode', 'category', 'source', 'platform', 'status', 'purchaseDate', 'qty', 'buyPrice', 'inboundCost', 'unitCost', 'paidWith', 'expectedPrice', 'feePct', 'shipOut', 'qtySold', 'soldPrice', 'soldDate', 'payoutTo', 'invested', 'potential', 'realized', 'roi', 'notes'];
+    const lines = [cols.join(',')];
+    for (const it of state.items) {
+      const c = calc(it);
+      const row = { ...it, status: STATUS[c.status], feePct: it.feePct == null ? state.settings.feePct : it.feePct, unitCost: c.unitCost, invested: c.invested, potential: c.potential, realized: c.realized, roi: c.roi == null ? '' : (c.roi * 100).toFixed(1) + '%', paidWith: names[it.paidWith] || '', payoutTo: names[it.payoutTo] || '' };
+      lines.push(cols.map(k => csv(typeof row[k] === 'number' ? row[k].toFixed(2).replace(/\.00$/, '') : row[k])).join(','));
+    }
+    download(`resale-inventory-${today()}.csv`, '﻿' + lines.join('\r\n'), 'text/csv');
+  };
+  const csv = v => { const s = String(v ?? ''); return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  function download(name, content, type) { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([content], { type })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+
+  // ---------- sample ----------
+  function loadSample() {
+    const d = n => { const x = new Date(); x.setDate(x.getDate() - n); return `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`; };
+    const visa = uid(), cash = uid(), paypal = uid();
+    state.accounts = [
+      { id: visa, name: 'Chase Visa', kind: 'credit', start: 1500, startDate: d(210), adjustments: [{ id: uid(), date: d(30), amount: 400, note: 'Paid statement' }] },
+      { id: cash, name: 'Cash envelope', kind: 'cash', start: 300, startDate: d(210), adjustments: [] },
+      { id: paypal, name: 'PayPal', kind: 'payout', start: 0, startDate: d(210), adjustments: [] },
+    ].map(normalizeAcct);
+    const items = [
+      { name: 'Nike Dunk Low Panda, size 10', barcode: '196607289068', category: 'Shoes', source: 'Outlet', platform: 'eBay', purchaseDate: d(70), qty: 1, buyPrice: 65, inboundCost: 5.2, expectedPrice: 130, shipOut: 12, qtySold: 1, soldPrice: 125, soldDate: d(50), paidWith: visa, payoutTo: paypal },
+      { name: "Vintage Levi's 501, 34x32", category: 'Clothing', source: 'Goodwill', platform: 'Depop', purchaseDate: d(45), qty: 1, buyPrice: 8, inboundCost: 0.7, expectedPrice: 55, shipOut: 6, listed: true, paidWith: cash },
+      { name: 'PlayStation 4 Slim 1TB', barcode: '711719504122', category: 'Electronics', source: 'FB Marketplace', platform: 'eBay', purchaseDate: d(30), qty: 1, buyPrice: 90, inboundCost: 0, expectedPrice: 180, shipOut: 15, listed: true, paidWith: cash },
+      { name: 'LEGO Star Wars 75192 (sealed)', barcode: '673419267397', category: 'Toys', source: 'Target clearance', platform: 'eBay', purchaseDate: d(120), qty: 2, buyPrice: 420, inboundCost: 30, expectedPrice: 780, shipOut: 45, qtySold: 1, soldPrice: 760, soldDate: d(20), paidWith: visa, payoutTo: paypal },
+      { name: 'Coach leather crossbody', category: 'Bags', source: 'Estate sale', platform: 'Poshmark', purchaseDate: d(15), qty: 1, buyPrice: 22, inboundCost: 0, expectedPrice: 85, feePct: 20, shipOut: 0, paidWith: cash },
+      { name: 'Funko Pop lot (12)', category: 'Toys', source: 'Garage sale', platform: 'Mercari', purchaseDate: d(200), qty: 12, buyPrice: 3, inboundCost: 0, expectedPrice: 12, feePct: 10, shipOut: 4.5, qtySold: 7, soldPrice: 11, soldDate: d(95), paidWith: cash },
+      { name: 'Broken iPad Air 2 (parts)', category: 'Electronics', source: 'Craigslist', platform: 'eBay', purchaseDate: d(160), qty: 1, buyPrice: 40, inboundCost: 0, expectedPrice: 35, shipOut: 8, qtySold: 1, soldPrice: 30, soldDate: d(140), paidWith: visa },
+      { name: 'Patagonia Better Sweater, M', category: 'Clothing', source: 'Thrift', platform: 'Poshmark', purchaseDate: d(8), qty: 1, buyPrice: 14, inboundCost: 1.1, expectedPrice: 60, feePct: 20, shipOut: 0, paidWith: visa },
+    ];
+    state.items = items.map(normalize); save(); render(); toast('Sample data loaded — remove it via Settings > Delete all data');
+  }
+
+  // ---------- PWA ----------
+  let installEvt = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (!localStorage.getItem('rt.installDismissed')) $('#installBar').classList.add('show'); });
+  $('#installBtn').onclick = async () => { if (!installEvt) return; installEvt.prompt(); await installEvt.userChoice; installEvt = null; $('#installBar').classList.remove('show'); };
+  $('#installDismiss').onclick = () => { $('#installBar').classList.remove('show'); try { localStorage.setItem('rt.installDismissed', '1'); } catch (e) {} };
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream;
+  const standalone = window.matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (isIos && !standalone && location.protocol.startsWith('http') && !localStorage.getItem('rt.installDismissed')) {
+    $('#installMsg').innerHTML = 'To install on iPhone: tap the <b>Share</b> button in Safari, then <b>Add to Home Screen</b>.'; $('#installBtn').style.display = 'none'; $('#installBar').classList.add('show');
+  }
+  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+    navigator.serviceWorker.register('sw.js').catch(err => console.warn('sw failed', err));
+  }
+
+  // ---------- wiring ----------
+  $('#addBtn').onclick = () => openItem(null);
+  const rowClick = e => {
+    const btn = e.target.closest('button[data-act]'); const tr = e.target.closest('[data-id]'); if (!tr) return;
+    const it = state.items.find(i => i.id === tr.dataset.id); if (!it) return;
+    if (btn?.dataset.act === 'sale') openSale(it); else openItem(it);
+  };
+  $('#rows').addEventListener('click', rowClick); $('#cards').addEventListener('click', rowClick);
+  $$('th[data-k]').forEach(th => th.onclick = () => { const k = th.dataset.k; sort = sort.k === k ? { k, dir: sort.dir === 'asc' ? 'desc' : 'asc' } : { k, dir: ['name', 'status'].includes(k) ? 'asc' : 'desc' }; renderTable(); });
+  ['#q', '#fStatus', '#fCategory', '#fPlatform'].forEach(s => $(s).addEventListener('input', renderTable));
+  $('#clearFilters').onclick = () => { $('#q').value = ''; $('#fStatus').value = ''; $('#fCategory').value = ''; $('#fPlatform').value = ''; renderTable(); };
+  $('#moreBtn').onclick = () => $('#moreModal').classList.add('open');
+  $$('[data-more]').forEach(b => b.onclick = () => { closeModals(); $('#' + b.dataset.more).click(); });
+  $$('[data-close]').forEach(b => b.onclick = closeModals);
+  $$('.modal').forEach(m => m.addEventListener('mousedown', e => { if (e.target === m) { if (m.id === 'scanModal') stopScanner(); else closeModals(); } }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { stopScanner(); closeModals(); } if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !$('.modal.open')) { e.preventDefault(); openItem(null); } });
+  function closeModals() { $$('.modal').forEach(m => { if (m.id !== 'scanModal') m.classList.remove('open'); }); }
+  let toastT; function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400); }
+  let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderChart, 120); });
+
+  try { localStorage.getItem(KEY); } catch (e) { $('#storeNote').textContent = 'storage blocked — use Backup/Restore'; }
+  state = load();
+  render();
+})();
+</script>
+</body>
+</html>
