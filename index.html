@@ -89,6 +89,17 @@
   .acct .nm small { color: var(--text-3); font-weight: 400; }
   .acct .bal { font-size: 20px; font-weight: 600; margin-top: 2px; font-variant-numeric: tabular-nums; }
   .acct .det { font-size: 12px; color: var(--text-3); }
+  .acct .acts { display: flex; gap: 6px; margin-top: 8px; }
+  .acct .acts .btn { flex: 1; text-align: center; }
+  .ledger { margin-top: 12px; }
+  .ledger h4 { font-size: 12px; color: var(--text-2); margin: 0 0 4px; font-weight: 600; }
+  .ledger .row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .ledger .row .l { min-width: 0; }
+  .ledger .row .l small { display: block; color: var(--text-3); font-size: 11px; }
+  .ledger .row .r { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .ledger .row .del { color: var(--text-3); cursor: pointer; margin-left: 6px; }
+  .cands { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+  .cands button { text-align: left; white-space: normal; }
   .adj-list { margin-top: 10px; border-top: 1px solid var(--border); }
   .adj-list .row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
   .adj-list .row span:last-child { font-variant-numeric: tabular-nums; }
@@ -387,8 +398,16 @@
     <div class="grid">
       <div class="field"><label>Default platform fee %</label><input name="feePct" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div>
       <div class="field"><label>Currency symbol</label><input name="currency" maxlength="4"></div>
-      <div class="field check full"><input type="checkbox" name="onlineLookup" id="onlineLookupChk"><label for="onlineLookupChk">Look up scanned barcodes online (Open Food/Products Facts)</label></div>
+      <div class="field check full"><input type="checkbox" name="onlineLookup" id="onlineLookupChk"><label for="onlineLookupChk">Look up scanned barcodes online</label></div>
     </div>
+    <fieldset style="margin-top:12px">
+      <legend>Google lookup (optional, best results)</legend>
+      <div class="grid">
+        <div class="field full"><label>Google API key</label><input name="googleKey" autocomplete="off" spellcheck="false" placeholder="AIza…"></div>
+        <div class="field full"><label>Search engine ID (cx)</label><input name="googleCx" autocomplete="off" spellcheck="false" placeholder="a1b2c3d4e5f6g7h8i"></div>
+      </div>
+      <div class="hint">Free, 100 lookups a day. Create a Programmable Search Engine set to "Search the entire web" at programmablesearchengine.google.com, copy its Search engine ID, then click "Get a key" at developers.google.com/custom-search/v1/overview. Keys stay on this device.</div>
+    </fieldset>
     <div class="hint" style="margin-top:10px">Fee % is applied to the sale price (eBay ≈ 13.25%, Poshmark 20%, Mercari ≈ 10%+). You can override it per item.</div>
     <div class="hint" id="versionNote"></div>
     <div class="dlg-actions">
@@ -410,7 +429,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.1';
+  const VERSION = '2.2';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -526,6 +545,7 @@
         <div class="nm"><span>${esc(a.name)}</span><small>${KIND[a.kind]}</small></div>
         <div class="bal ${signCls(b.available)}">${fmt(b.available)}</div>
         <div class="det">${a.kind === 'credit' ? 'left to spend' : 'balance'} · spent ${fmt(b.spent)} on ${b.nSpent} item${b.nSpent === 1 ? '' : 's'}${b.deposits ? ` · +${fmt(b.deposits)} payouts` : ''}</div>
+        <div class="acts"><button type="button" class="btn sm" data-acct-act="funds">+ Add funds</button><button type="button" class="btn sm" data-acct-act="edit">Activity / Edit</button></div>
       </div>`; }).join('');
   }
 
@@ -783,15 +803,53 @@
     if (!state.settings.onlineLookup) { st.innerHTML = `New barcode ${esc(code)}. Find the name and typical price, then type them in: ${gl}`; return; }
     if (!navigator.onLine) { st.innerHTML = `New barcode ${esc(code)} (offline, no lookup). ${gl}`; return; }
     st.textContent = 'Looking up product…';
+    const hasGoogle = state.settings.googleKey && state.settings.googleCx;
+    if (hasGoogle) {
+      const g = await googleLookup(code);
+      if (g.error) {
+        st.innerHTML = `Google lookup failed: ${esc(g.error)}. Check the key in Settings. ${gl}`;
+      } else if (g.names.length) {
+        if (!f.name.value) f.name.value = g.names[0];
+        st.innerHTML = `Google results for ${esc(code)}. Tap a name to use it${g.prices.length ? ` · prices seen: ${g.prices.map(esc).join(', ')}` : ''}:<div class="cands">${g.names.map(n => `<button type="button" class="btn sm" data-cand="${esc(n)}">${esc(n)}</button>`).join('')}</div>${gl}`;
+        $$('#lookupStatus [data-cand]').forEach(b => b.onclick = () => { f.name.value = b.dataset.cand; updatePreview(); f.expectedPrice.focus(); });
+        updatePreview(); if (!f.name.value) f.name.focus(); else f.expectedPrice.focus();
+        return;
+      }
+    }
     const hit = await openFactsLookup(code);
     if (hit) {
       if (!f.name.value) f.name.value = hit.name;
       if (!f.category.value && hit.category) f.category.value = hit.category;
       st.innerHTML = `Found: <b>${esc(hit.name)}</b> (${esc(hit.src)}). Edit the name if needed.`; updatePreview();
     } else {
-      st.innerHTML = `New barcode ${esc(code)}, not in the open databases (they mostly cover groceries). Look it up, then type the name and expected price: ${gl}`;
+      st.innerHTML = `New barcode ${esc(code)}, not found${hasGoogle ? ' on Google or' : ' in'} the open databases. Look it up, then type the name and expected price: ${gl}${hasGoogle ? '' : '<div class="hint">Tip: add a free Google key in Settings and the app will pull the name from Google automatically.</div>'}`;
     }
     if (!f.name.value) f.name.focus();
+  }
+  function cleanTitle(t) {
+    t = String(t || '').replace(/^amazon\.com\s*:\s*/i, '').replace(/\s+/g, ' ').trim();
+    // drop a short trailing site name such as " - eBay", " | Walmart.com", " : Target"
+    const m = t.match(/^(.*\S)\s+[-|:\u2013\u2014]\s+([^-|:\u2013\u2014]{1,30})$/);
+    if (m && /ebay|amazon|walmart|target|mercari|poshmark|stockx|goat|\.com|shop|store|official/i.test(m[2])) t = m[1];
+    return t.replace(/\s*\.{3}$/, '').trim();
+  }
+  async function googleLookup(code) {
+    try {
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+      const u = `https://www.googleapis.com/customsearch/v1?key=${encodeURIComponent(state.settings.googleKey)}&cx=${encodeURIComponent(state.settings.googleCx)}&q=${encodeURIComponent(code)}&num=6`;
+      const r = await fetch(u, { signal: ctl.signal }); clearTimeout(t);
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return { error: String((j.error && j.error.message) || ("HTTP " + r.status)).replace(/.$/, ""), names: [], prices: [] };
+      const items = (j.items || []);
+      const names = []; const prices = [];
+      for (const it of items) {
+        const n = cleanTitle(it.title);
+        if (n && n.length > 3 && !/^\d+$/.test(n) && !names.some(x => x.toLowerCase() === n.toLowerCase())) names.push(n);
+        const pm = String(it.snippet || '').match(/\$\s?\d{1,4}(?:[.,]\d{2})?/g) || [];
+        for (const pr of pm) { const v = pr.replace(/\s/g, ''); if (!prices.includes(v)) prices.push(v); }
+      }
+      return { names: names.slice(0, 4), prices: prices.slice(0, 4) };
+    } catch (e) { return { error: e.name === 'AbortError' ? 'timed out' : (e.message || 'network error'), names: [], prices: [] }; }
   }
   async function openFactsLookup(code) {
     const srcs = [['Open Products Facts', 'https://world.openproductsfacts.org/api/v2/product/'], ['Open Food Facts', 'https://world.openfoodfacts.org/api/v2/product/'], ['Open Beauty Facts', 'https://world.openbeautyfacts.org/api/v2/product/']];
@@ -855,7 +913,7 @@
   // ---------- accounts ----------
   const acctModal = $('#acctModal'), acctForm = $('#acctForm');
   let editingAdj = [];
-  function openAcct(a) {
+  function openAcct(a, focusFunds) {
     acctForm.reset();
     const f = acctForm.elements;
     $('#acctTitle').textContent = a ? 'Edit card' : 'Add card';
@@ -866,10 +924,18 @@
     $('#adjDate').value = today(); $('#adjAmt').value = ''; $('#adjNote').value = '';
     renderAdj(); updateAcctPreview();
     openModal('acctModal');
-    setTimeout(() => f.name.focus(), 50);
+    setTimeout(() => { if (focusFunds) { $('#adjAmt').scrollIntoView({ block: 'center' }); $('#adjAmt').focus(); } else f.name.focus(); }, 80);
   }
   function renderAdj() {
-    $('#adjList').innerHTML = editingAdj.length ? editingAdj.slice().sort((x, y) => (y.date || '').localeCompare(x.date || '')).map(x => `<div class="row"><span>${fmtDate(x.date)} · ${esc(x.note) || 'adjustment'}</span><span class="${signCls(x.amount)}">${x.amount >= 0 ? '+' : ''}${fmt(x.amount)}<span class="del" data-adj="${x.id}" title="Remove">✕</span></span></div>`).join('') : '';
+    const id = acctForm.elements.id.value;
+    const rows = editingAdj.map(x => ({ date: x.date, label: x.note || 'Adjustment', sub: 'adjustment', amount: x.amount, adjId: x.id }));
+    if (id) for (const it of state.items) {
+      const c = calc(it);
+      if (it.paidWith === id) rows.push({ date: it.purchaseDate, label: it.name, sub: `bought ${it.qty > 1 ? it.qty + ' × ' : ''}${fmt(c.unitCost)}`, amount: -c.spent });
+      if (it.payoutTo === id && c.qtySold > 0) rows.push({ date: it.soldDate, label: it.name, sub: `payout for ${c.qtySold} sold`, amount: c.payout });
+    }
+    rows.sort((x, y) => (y.date || '').localeCompare(x.date || ''));
+    $('#adjList').innerHTML = rows.length ? `<div class="ledger"><h4>Activity</h4>${rows.map(r => `<div class="row"><div class="l">${esc(r.label)}<small>${fmtDate(r.date)} · ${esc(r.sub)}</small></div><div class="r ${signCls(r.amount)}">${r.amount >= 0 ? '+' : ''}${fmt(r.amount)}${r.adjId ? `<span class="del" data-adj="${r.adjId}" title="Remove">✕</span>` : ''}</div></div>`).join('')}</div>` : '';
     $$('#adjList .del').forEach(d => d.onclick = () => { editingAdj = editingAdj.filter(x => x.id !== d.dataset.adj); renderAdj(); updateAcctPreview(); });
     $('#startLbl').textContent = acctForm.elements.kind.value === 'credit' ? 'Available credit to start' : 'Starting balance';
   }
@@ -903,14 +969,14 @@
     }
   };
   $('#addAcctBtn').onclick = () => openAcct(null);
-  $('#accts').addEventListener('click', e => { const el = e.target.closest('.acct[data-id]'); if (!el) return; const a = state.accounts.find(x => x.id === el.dataset.id); if (a) openAcct(a); });
+  $('#accts').addEventListener('click', e => { const el = e.target.closest('.acct[data-id]'); if (!el) return; const a = state.accounts.find(x => x.id === el.dataset.id); if (!a) return; const act = e.target.closest('[data-acct-act]')?.dataset.acctAct; openAcct(a, act === 'funds'); });
 
   // ---------- settings ----------
   const settingsModal = $('#settingsModal'), settingsForm = $('#settingsForm');
-  $('#settingsBtn').onclick = () => { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; openModal('settingsModal'); };
+  $('#settingsBtn').onclick = () => { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; f.googleKey.value = state.settings.googleKey || ''; f.googleCx.value = state.settings.googleCx || ''; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; openModal('settingsModal'); };
   settingsForm.addEventListener('submit', e => {
     e.preventDefault(); const f = settingsForm.elements;
-    state.settings.feePct = num(f.feePct.value); state.settings.currency = f.currency.value || '$'; state.settings.onlineLookup = f.onlineLookup.checked;
+    state.settings.feePct = num(f.feePct.value); state.settings.currency = f.currency.value || '$'; state.settings.onlineLookup = f.onlineLookup.checked; state.settings.googleKey = f.googleKey.value.trim(); state.settings.googleCx = f.googleCx.value.trim();
     save(); render(); closeModals(); toast('Settings saved');
   });
   $('#wipeBtn').onclick = () => { if (confirm('Delete ALL items and cards? Make a backup first if you want to keep them.') && confirm('Really delete everything?')) { state.items = []; state.accounts = []; save(); render(); closeModals(); toast('All data deleted'); } };
@@ -995,7 +1061,7 @@
   ['#q', '#fStatus', '#fCategory', '#fPlatform'].forEach(s => $(s).addEventListener('input', renderTable));
   $('#clearFilters').onclick = () => { $('#q').value = ''; $('#fStatus').value = ''; $('#fCategory').value = ''; $('#fPlatform').value = ''; renderTable(); };
   $('#moreBtn').onclick = () => openModal('moreModal');
-  $$('[data-more]').forEach(b => b.onclick = () => { const target = b.dataset.more; if (target === 'settingsBtn') { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; swapModal('moreModal', 'settingsModal'); } else { closeTop(); setTimeout(() => $('#' + target).click(), 50); } });
+  $$('[data-more]').forEach(b => b.onclick = () => { const target = b.dataset.more; if (target === 'settingsBtn') { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; f.googleKey.value = state.settings.googleKey || ''; f.googleCx.value = state.settings.googleCx || ''; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; swapModal('moreModal', 'settingsModal'); } else { closeTop(); setTimeout(() => $('#' + target).click(), 50); } });
   $$('[data-close]').forEach(b => b.onclick = () => closeTop());
   $$('.modal').forEach(m => m.addEventListener('mousedown', e => { if (e.target === m) closeTop(); }));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTop(); if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !modalStack.length) { e.preventDefault(); openItem(null); } });
