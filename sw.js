@@ -1,5 +1,5 @@
 // Resale Tracker service worker: caches the app shell so it opens offline.
-const VERSION = 'rt-v2.0.0';
+const VERSION = 'rt-v2.1.0';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './icon-512-maskable.png'];
 const SCANNER = 'https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js';
 

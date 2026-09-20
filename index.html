@@ -131,8 +131,11 @@
   .cards .sum { padding: 8px 4px; font-size: 13px; color: var(--text-2); display: flex; justify-content: space-between; }
 
   /* modal */
-  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-start; justify-content: center; padding: 30px 12px; overflow-y: auto; z-index: 10; }
+  .modal { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none; align-items: flex-start; justify-content: center; padding: 30px 12px; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; z-index: 10; }
   .modal.open { display: flex; }
+  body.modal-open { position: fixed; width: 100%; overflow: hidden; }
+  .dialog h3 { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .dialog h3 .x { border: 0; background: var(--surface-2); color: var(--text-2); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 16px; line-height: 1; flex: none; }
   .dialog { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 680px; padding: 18px 20px; box-shadow: var(--shadow); }
   .dialog h3 { margin: 0 0 14px; font-size: 16px; }
   .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px 12px; }
@@ -150,6 +153,8 @@
   .preview { margin-top: 10px; font-size: 13px; color: var(--text-2); display: flex; gap: 18px; flex-wrap: wrap; }
   .preview b { color: var(--text); font-variant-numeric: tabular-nums; }
   .dlg-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; }
+  .lookup-links { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+  .lookup-links a { display: inline-block; text-decoration: none; }
   .dlg-actions .right { display: flex; gap: 8px; }
   .hint { font-size: 12px; color: var(--text-3); margin-top: 6px; }
   .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 8px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; max-width: 90vw; text-align: center; }
@@ -176,8 +181,9 @@
     .table-wrap { display: none; }
     .cards { display: block; }
     .grid { grid-template-columns: 1fr 1fr; }
-    .modal { padding: 10px 8px; align-items: flex-end; }
-    .dialog { padding: 14px; border-radius: 12px; max-height: 92vh; overflow-y: auto; }
+    .modal { padding: 0; align-items: stretch; }
+    .dialog { padding: 14px 14px calc(24px + env(safe-area-inset-bottom)); border-radius: 0; border: 0; max-width: none; min-height: 100%; box-shadow: none; }
+    .dialog h3 { position: sticky; top: -14px; margin: -14px -14px 12px; padding: 12px 14px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 1; }
     .adj-add { grid-template-columns: 1fr 1fr; }
     .btn.sm { padding: 6px 10px; }
   }
@@ -255,7 +261,7 @@
 <!-- More menu (mobile) -->
 <div class="modal" id="moreModal">
   <div class="dialog" style="max-width:360px">
-    <h3>More</h3>
+    <h3>More <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
     <div style="display:grid;gap:8px">
       <button class="btn" data-more="exportCsvBtn">Export CSV</button>
       <button class="btn" data-more="backupBtn">Backup to file</button>
@@ -269,7 +275,7 @@
 <!-- Item modal -->
 <div class="modal" id="itemModal">
   <form class="dialog" id="itemForm" autocomplete="off">
-    <h3 id="itemTitle">Add item</h3>
+    <h3><span id="itemTitle">Add item</span> <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
     <input type="hidden" name="id">
     <div class="grid">
       <div class="field full"><label>Barcode (UPC / EAN)</label>
@@ -314,7 +320,7 @@
 <!-- Quick sale modal -->
 <div class="modal" id="saleModal">
   <form class="dialog" id="saleForm" style="max-width:460px">
-    <h3>Record sale</h3>
+    <h3>Record sale <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
     <input type="hidden" name="id">
     <div class="grid">
       <div class="field full"><div id="saleItemName" style="font-weight:600"></div><div class="hint" id="saleItemMeta"></div></div>
@@ -336,7 +342,7 @@
 <!-- Account modal -->
 <div class="modal" id="acctModal">
   <form class="dialog" id="acctForm" style="max-width:520px" autocomplete="off">
-    <h3 id="acctTitle">Add card</h3>
+    <h3><span id="acctTitle">Add card</span> <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
     <input type="hidden" name="id">
     <div class="grid">
       <div class="field"><label>Name *</label><input name="name" required placeholder="Chase Visa, Cash, PayPal…"></div>
@@ -366,18 +372,18 @@
 <!-- Scanner modal -->
 <div class="modal" id="scanModal">
   <div class="dialog" style="max-width:520px">
-    <h3>Scan barcode</h3>
+    <h3>Scan barcode <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
     <div id="reader"></div>
     <div class="scan-status" id="scanStatus">Starting camera…</div>
     <div class="inline" style="margin-top:10px"><input id="manualCode" inputmode="numeric" placeholder="Or type the number under the barcode" style="border:1px solid var(--border);background:var(--bg);border-radius:8px;padding:7px 10px"><button type="button" class="btn" id="manualCodeBtn">Use</button></div>
-    <div class="dlg-actions"><span></span><div class="right"><button type="button" class="btn" id="scanClose">Cancel</button></div></div>
+    <div class="dlg-actions"><span></span><div class="right"><button type="button" class="btn" data-close>Cancel</button></div></div>
   </div>
 </div>
 
 <!-- Settings modal -->
 <div class="modal" id="settingsModal">
   <form class="dialog" id="settingsForm" style="max-width:460px">
-    <h3>Settings</h3>
+    <h3>Settings <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
     <div class="grid">
       <div class="field"><label>Default platform fee %</label><input name="feePct" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div>
       <div class="field"><label>Currency symbol</label><input name="currency" maxlength="4"></div>
@@ -404,7 +410,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.0';
+  const VERSION = '2.1';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -647,6 +653,32 @@
     $('#cards').insertAdjacentHTML('beforeend', `<div class="sum"><span>${t.n} item${t.n === 1 ? '' : 's'} · ${fmt(t.inv)} tied up</span><span>potential <b class="${signCls(t.pot)}">${fmt(t.pot)}</b> · realized <b class="${signCls(t.rea)}">${fmt(t.rea)}</b></span></div>`);
   }
 
+  // ---------- modal manager (scroll lock + back-button support) ----------
+  const modalStack = []; let pendingBack = 0, scrollLockY = 0;
+  function lockBody() { if (document.body.classList.contains('modal-open')) return; scrollLockY = window.scrollY; document.body.style.top = -scrollLockY + 'px'; document.body.classList.add('modal-open'); }
+  function unlockBody() { if (!document.body.classList.contains('modal-open')) return; document.body.classList.remove('modal-open'); document.body.style.top = ''; window.scrollTo(0, scrollLockY); }
+  function openModal(id) {
+    const m = $('#' + id); if (m.classList.contains('open')) return;
+    m.classList.add('open'); m.scrollTop = 0; modalStack.push(id); lockBody();
+    try { history.pushState({ modal: id }, ''); } catch (e) {}
+  }
+  function swapModal(fromId, toId) { // replace the top popup with another without touching history
+    stopCamera(); $('#' + fromId).classList.remove('open');
+    const i = modalStack.lastIndexOf(fromId); if (i >= 0) modalStack.splice(i, 1);
+    const m = $('#' + toId); m.classList.add('open'); m.scrollTop = 0; modalStack.push(toId); lockBody();
+    try { history.replaceState({ modal: toId }, ''); } catch (e) {}
+  }
+  function closeTop(viaHistory) {
+    const id = modalStack.pop(); if (!id) return;
+    if (id === 'scanModal') stopCamera();
+    $('#' + id).classList.remove('open');
+    if (!modalStack.length) unlockBody();
+    if (!viaHistory) { pendingBack++; try { history.back(); } catch (e) { pendingBack--; } }
+  }
+  function closeModals() { const n = modalStack.length; if (!n) return; stopCamera(); modalStack.splice(0).forEach(id => $('#' + id).classList.remove('open')); unlockBody(); pendingBack += n; try { history.go(-n); } catch (e) { pendingBack -= n; } }
+  window.addEventListener('popstate', () => { if (pendingBack > 0) { pendingBack--; return; } if (modalStack.length) closeTop(true); });
+  try { if (history.state && history.state.modal) history.replaceState(null, ''); } catch (e) {}
+
   // ---------- item modal ----------
   const itemModal = $('#itemModal'), itemForm = $('#itemForm');
   function openItem(it, prefill) {
@@ -668,7 +700,7 @@
     }
     f.feePct.placeholder = `default ${state.settings.feePct}%`;
     updatePreview();
-    itemModal.classList.add('open');
+    if (modalStack[modalStack.length - 1] === 'scanModal') swapModal('scanModal', 'itemModal'); else openModal('itemModal');
     if (!it && !prefill?.barcode) setTimeout(() => f.name.focus(), 50);
   }
   function readItemForm() {
@@ -712,26 +744,25 @@
   function openScanner(target) {
     scanTarget = target;
     $('#scanStatus').textContent = 'Starting camera…'; $('#manualCode').value = '';
-    $('#scanModal').classList.add('open');
+    openModal('scanModal');
     if (!window.Html5Qrcode) { $('#scanStatus').textContent = 'Scanner library not loaded (need internet the first time). You can type the code below.'; return; }
     if (!navigator.mediaDevices?.getUserMedia) { $('#scanStatus').textContent = 'Camera not available here (needs HTTPS or the installed app). Type the code below.'; return; }
     try {
       scanner = new Html5Qrcode('reader', { verbose: false });
       const cfg = { fps: 10, qrbox: { width: 260, height: 140 }, aspectRatio: 1.333, experimentalFeatures: { useBarCodeDetectorIfSupported: true } };
-      scanner.start({ facingMode: 'environment' }, cfg, code => { stopScanner(); onScanned(code); }, () => {})
+      scanner.start({ facingMode: 'environment' }, cfg, code => { if (scanner) onScanned(code); }, () => {})
         .then(() => { $('#scanStatus').textContent = 'Point the camera at the barcode.'; })
         .catch(err => { $('#scanStatus').textContent = 'Could not start camera: ' + (err?.message || err) + '. Type the code below.'; scanner = null; });
     } catch (err) { $('#scanStatus').textContent = 'Scanner error: ' + (err?.message || err); scanner = null; }
   }
-  function stopScanner() { const s = scanner; scanner = null; if (s) s.stop().then(() => s.clear()).catch(() => {}); $('#scanModal').classList.remove('open'); }
-  $('#scanClose').onclick = stopScanner;
-  $('#manualCodeBtn').onclick = () => { const v = $('#manualCode').value.trim(); if (v) { stopScanner(); onScanned(v); } };
+  function stopCamera() { const s = scanner; scanner = null; if (s) s.stop().then(() => s.clear()).catch(() => {}); }
+  $('#manualCodeBtn').onclick = () => { const v = $('#manualCode').value.trim(); if (v) onScanned(v); };
   $('#manualCode').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#manualCodeBtn').click(); } });
   function onScanned(code) {
     code = String(code).trim();
     if (navigator.vibrate) navigator.vibrate(40);
-    if (scanTarget === 'form') { itemForm.elements.barcode.value = code; }
-    else { openItem(null, { barcode: code }); }
+    if (scanTarget === 'form') { closeTop(); itemForm.elements.barcode.value = code; }
+    else { stopCamera(); openItem(null, { barcode: code }); }
     lookupBarcode(code);
   }
   async function lookupBarcode(code) {
@@ -747,9 +778,10 @@
       if (f.feePct.value === '' && known.feePct != null) f.feePct.value = known.feePct;
       st.innerHTML = `Matched an item you bought before: <b>${esc(known.name)}</b>`; updatePreview(); return;
     }
-    const gl = `<a href="https://www.google.com/search?q=${encodeURIComponent(code)}" target="_blank" rel="noopener">search the web for ${esc(code)}</a>`;
-    if (!state.settings.onlineLookup) { st.innerHTML = `New barcode. ${gl} to find the product name.`; return; }
-    if (!navigator.onLine) { st.innerHTML = `New barcode (offline, no lookup). ${gl}`; return; }
+    const c = encodeURIComponent(code);
+    const gl = `<div class="lookup-links"><a class="btn sm" href="https://www.ebay.com/sch/i.html?_nkw=${c}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">eBay sold listings</a><a class="btn sm" href="https://www.google.com/search?q=${c}" target="_blank" rel="noopener">Google</a><a class="btn sm" href="https://www.amazon.com/s?k=${c}" target="_blank" rel="noopener">Amazon</a></div>`;
+    if (!state.settings.onlineLookup) { st.innerHTML = `New barcode ${esc(code)}. Find the name and typical price, then type them in: ${gl}`; return; }
+    if (!navigator.onLine) { st.innerHTML = `New barcode ${esc(code)} (offline, no lookup). ${gl}`; return; }
     st.textContent = 'Looking up product…';
     const hit = await openFactsLookup(code);
     if (hit) {
@@ -757,7 +789,7 @@
       if (!f.category.value && hit.category) f.category.value = hit.category;
       st.innerHTML = `Found: <b>${esc(hit.name)}</b> (${esc(hit.src)}). Edit the name if needed.`; updatePreview();
     } else {
-      st.innerHTML = `Not in the open product databases. ${gl}, then type the name.`;
+      st.innerHTML = `New barcode ${esc(code)}, not in the open databases (they mostly cover groceries). Look it up, then type the name and expected price: ${gl}`;
     }
     if (!f.name.value) f.name.focus();
   }
@@ -796,7 +828,7 @@
     acctOptions(f.payoutTo, lastPayout);
     $('#saleItemName').textContent = it.name;
     $('#saleItemMeta').textContent = `${c.qtyLeft} unit${c.qtyLeft === 1 ? '' : 's'} left · cost ${fmt(c.unitCost)}/unit`;
-    updateSalePreview(); saleModal.classList.add('open');
+    updateSalePreview(); openModal('saleModal');
     setTimeout(() => f.price.select(), 50);
   }
   function updateSalePreview() {
@@ -833,7 +865,7 @@
     editingAdj = a ? a.adjustments.map(x => ({ ...x })) : [];
     $('#adjDate').value = today(); $('#adjAmt').value = ''; $('#adjNote').value = '';
     renderAdj(); updateAcctPreview();
-    acctModal.classList.add('open');
+    openModal('acctModal');
     setTimeout(() => f.name.focus(), 50);
   }
   function renderAdj() {
@@ -875,7 +907,7 @@
 
   // ---------- settings ----------
   const settingsModal = $('#settingsModal'), settingsForm = $('#settingsForm');
-  $('#settingsBtn').onclick = () => { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; settingsModal.classList.add('open'); };
+  $('#settingsBtn').onclick = () => { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; openModal('settingsModal'); };
   settingsForm.addEventListener('submit', e => {
     e.preventDefault(); const f = settingsForm.elements;
     state.settings.feePct = num(f.feePct.value); state.settings.currency = f.currency.value || '$'; state.settings.onlineLookup = f.onlineLookup.checked;
@@ -962,12 +994,11 @@
   $$('th[data-k]').forEach(th => th.onclick = () => { const k = th.dataset.k; sort = sort.k === k ? { k, dir: sort.dir === 'asc' ? 'desc' : 'asc' } : { k, dir: ['name', 'status'].includes(k) ? 'asc' : 'desc' }; renderTable(); });
   ['#q', '#fStatus', '#fCategory', '#fPlatform'].forEach(s => $(s).addEventListener('input', renderTable));
   $('#clearFilters').onclick = () => { $('#q').value = ''; $('#fStatus').value = ''; $('#fCategory').value = ''; $('#fPlatform').value = ''; renderTable(); };
-  $('#moreBtn').onclick = () => $('#moreModal').classList.add('open');
-  $$('[data-more]').forEach(b => b.onclick = () => { closeModals(); $('#' + b.dataset.more).click(); });
-  $$('[data-close]').forEach(b => b.onclick = closeModals);
-  $$('.modal').forEach(m => m.addEventListener('mousedown', e => { if (e.target === m) { if (m.id === 'scanModal') stopScanner(); else closeModals(); } }));
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { stopScanner(); closeModals(); } if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !$('.modal.open')) { e.preventDefault(); openItem(null); } });
-  function closeModals() { $$('.modal').forEach(m => { if (m.id !== 'scanModal') m.classList.remove('open'); }); }
+  $('#moreBtn').onclick = () => openModal('moreModal');
+  $$('[data-more]').forEach(b => b.onclick = () => { const target = b.dataset.more; if (target === 'settingsBtn') { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; swapModal('moreModal', 'settingsModal'); } else { closeTop(); setTimeout(() => $('#' + target).click(), 50); } });
+  $$('[data-close]').forEach(b => b.onclick = () => closeTop());
+  $$('.modal').forEach(m => m.addEventListener('mousedown', e => { if (e.target === m) closeTop(); }));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTop(); if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !modalStack.length) { e.preventDefault(); openItem(null); } });
   let toastT; function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400); }
   let rt; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(renderChart, 120); });
 
