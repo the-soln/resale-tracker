@@ -38,3 +38,11 @@ Data is stored in the browser you use it in. Each address (computer file, phone 
 ## Updating the app
 
 Upload the new files to the same place. Open the app twice (the second open picks up the update).
+
+## Storefront
+
+Mark items with "Show in my store" and tap **Publish store**. The app writes `shop/catalog.json` and photos into this repository using a GitHub token you paste into Store settings, and the site rebuilds in about a minute. Customers see the store at `<your app address>/shop/`. Only the name, price, condition, category, quantity, listing link, and photo are published; costs and notes stay private.
+
+## Bulk import
+
+**More > Import items** accepts a PDF invoice or packing slip, a CSV, or pasted lines (`name, cost, qty, expected price`). Review the preview table, fix anything, then add.

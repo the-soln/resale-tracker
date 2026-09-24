@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { color-scheme: light; --bg: #f4f4f1; --surface: #fcfcfb; --surface-2: #f0efec; --border: #e2e1dc; --text: #0b0b0b; --text-2: #52514e; --text-3: #8a8985; --accent: #2a78d6; --accent-ink: #fff; --good-bg: #e3f5ec; --good-fg: #0f6b3f; }
+  @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg: #121211; --surface: #1a1a19; --surface-2: #242423; --border: #33332f; --text: #fff; --text-2: #c3c2b7; --text-3: #8a8985; --accent: #3987e5; --good-bg: #123526; --good-fg: #6fd39f; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
+  header { margin-bottom: 16px; }
+  header h1 { font-size: 26px; margin: 0; letter-spacing: -.01em; }
+  header p { margin: 4px 0 0; color: var(--text-2); }
+  .contact { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .btn { display: inline-block; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px; padding: 7px 12px; cursor: pointer; text-decoration: none; font: inherit; white-space: nowrap; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .btn.sm { padding: 5px 10px; font-size: 13px; }
+  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
+  .filters input { flex: 1; min-width: 160px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 10px; font: inherit; color: inherit; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+  .chip.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .card .ph { aspect-ratio: 1; background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 34px; overflow: hidden; }
+  .card .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .card .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
+  .card .name { font-weight: 600; line-height: 1.3; }
+  .card .price { font-size: 18px; font-weight: 700; }
+  .card .meta { font-size: 12px; color: var(--text-3); }
+  .card .cond { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--good-bg); color: var(--good-fg); font-weight: 600; align-self: flex-start; }
+  .card .acts { margin-top: auto; padding-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .empty { text-align: center; color: var(--text-3); padding: 50px 10px; }
+  footer { margin-top: 30px; font-size: 12px; color: var(--text-3); text-align: center; }
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; z-index: 10; cursor: zoom-out; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 96vw; max-height: 92vh; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 id="storeName">Shop</h1>
+    <p id="tagline"></p>
+    <div class="contact" id="contact"></div>
+  </header>
+  <div class="filters">
+    <input type="search" id="q" placeholder="Search…">
+    <div class="chips" id="chips"></div>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden></div>
+  <footer id="foot"></footer>
+</div>
+<div class="lightbox" id="lightbox"><img id="lightImg" alt=""></div>
+<script>
+(async () => {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  let data = null;
+  try { const r = await fetch('catalog.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) data = await r.json(); } catch (e) {}
+  if (!data || !Array.isArray(data.items)) { $('#empty').hidden = false; $('#empty').textContent = 'Nothing listed yet. Check back soon.'; $('#q').parentElement.hidden = true; return; }
+  const st = data.store || {};
+  document.title = st.name || 'Shop';
+  $('#storeName').textContent = st.name || 'Shop';
+  $('#tagline').textContent = st.tagline || '';
+  const money = n => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const contact = [];
+  if (st.email) contact.push(`<a class="btn primary" href="mailto:${esc(st.email)}?subject=${encodeURIComponent('Item from your shop')}">Email me</a>`);
+  if (st.phone) contact.push(`<a class="btn" href="sms:${esc(st.phone.replace(/[^\d+]/g, ''))}">Text ${esc(st.phone)}</a>`);
+  if (st.instagram) contact.push(`<a class="btn" href="https://instagram.com/${esc(st.instagram.replace(/^@/, ''))}" target="_blank" rel="noopener">Instagram @${esc(st.instagram.replace(/^@/, ''))}</a>`);
+  $('#contact').innerHTML = contact.join('');
+  const items = data.items.filter(i => i && i.name);
+  const cats = [...new Set(items.map(i => i.category).filter(Boolean))].sort();
+  let cat = '', q = '';
+  $('#chips').innerHTML = cats.length > 1 ? `<span class="chip on" data-cat="">All</span>` + cats.map(c => `<span class="chip" data-cat="${esc(c)}">${esc(c)}</span>`).join('') : '';
+  $('#chips').addEventListener('click', e => { const ch = e.target.closest('.chip'); if (!ch) return; cat = ch.dataset.cat; document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === ch)); render(); });
+  $('#q').addEventListener('input', e => { q = e.target.value.trim().toLowerCase(); render(); });
+  function msgLink(i) {
+    const subject = encodeURIComponent(`Interested in: ${i.name}`);
+    if (st.email) return `<a class="btn primary sm" href="mailto:${esc(st.email)}?subject=${subject}">I want this</a>`;
+    if (st.phone) return `<a class="btn primary sm" href="sms:${esc(st.phone.replace(/[^\d+]/g, ''))}?body=${subject}">I want this</a>`;
+    return '';
+  }
+  function render() {
+    const list = items.filter(i => (!cat || i.category === cat) && (!q || `${i.name} ${i.category} ${i.condition}`.toLowerCase().includes(q)));
+    $('#grid').innerHTML = list.map(i => `
+      <div class="card">
+        <div class="ph">${i.photo ? `<img src="${esc(i.photo)}" alt="${esc(i.name)}" loading="lazy" data-full="${esc(i.photo)}">` : '🏷️'}</div>
+        <div class="body">
+          <div class="name">${esc(i.name)}</div>
+          <div class="price">${money(i.price)}</div>
+          ${i.condition ? `<span class="cond">${esc(i.condition)}</span>` : ''}
+          <div class="meta">${[i.category, i.qty > 1 ? `${i.qty} available` : ''].filter(Boolean).map(esc).join(' · ')}</div>
+          <div class="acts">${msgLink(i)}${i.url ? `<a class="btn sm" href="${esc(i.url)}" target="_blank" rel="noopener">View listing</a>` : ''}</div>
+        </div>
+      </div>`).join('');
+    $('#empty').hidden = list.length > 0; $('#empty').textContent = items.length ? 'No items match.' : 'Nothing listed right now. Check back soon.';
+  }
+  $('#grid').addEventListener('click', e => { const img = e.target.closest('img[data-full]'); if (!img) return; $('#lightImg').src = img.dataset.full; $('#lightbox').classList.add('open'); });
+  $('#lightbox').addEventListener('click', () => $('#lightbox').classList.remove('open'));
+  render();
+  if (data.updated) $('#foot').textContent = 'Updated ' + new Date(data.updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+})();
+</script>
+</body>
+</html>

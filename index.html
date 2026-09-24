@@ -99,6 +99,19 @@
   .ledger .row .r { font-variant-numeric: tabular-nums; white-space: nowrap; }
   .ledger .row .del { color: var(--text-3); cursor: pointer; margin-left: 6px; }
   .cands { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+  .thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; background: var(--surface-2); flex: none; display: block; }
+  .row-l { display: flex; gap: 10px; align-items: center; }
+  .store-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .photo-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .photo-row img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: var(--surface-2); }
+  .imp-wrap { overflow-x: auto; margin-top: 10px; }
+  .imp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .imp-table th, .imp-table td { padding: 4px 4px; border-bottom: 1px solid var(--border); text-align: left; }
+  .imp-table input { width: 100%; min-width: 60px; border: 1px solid var(--border); background: var(--bg); border-radius: 6px; padding: 4px 6px; }
+  .imp-table input.n { min-width: 64px; max-width: 90px; }
+  .imp-table input.nm { min-width: 160px; }
+  .imp-table .rm { cursor: pointer; color: var(--text-3); }
+  .badge.store { background: var(--good-bg); color: var(--good-fg); }
   .cands button { text-align: left; white-space: normal; }
   .adj-list { margin-top: 10px; border-top: 1px solid var(--border); }
   .adj-list .row { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
@@ -209,6 +222,7 @@
       <button class="btn primary" id="scanBtn">📷 Scan</button>
       <button class="btn primary" id="addBtn">+ Add item</button>
       <button class="btn mobile-only" id="moreBtn">More ▾</button>
+      <button class="btn desktop-only" id="importBtn">Import</button>
       <button class="btn desktop-only" id="exportCsvBtn">Export CSV</button>
       <button class="btn desktop-only" id="backupBtn">Backup</button>
       <button class="btn desktop-only" id="restoreBtn">Restore</button>
@@ -224,6 +238,13 @@
   <div class="panel">
     <h2>Funds <span>cards and cash you buy inventory with</span><button class="btn sm" id="addAcctBtn">+ Add card</button></h2>
     <div class="accts" id="accts"></div>
+  </div>
+
+  <div class="panel" id="storePanel">
+    <h2>Storefront <span>a public page of what you have for sale</span><button class="btn sm" id="storeSettingsBtn">Store settings</button></h2>
+    <div class="hint" id="storeInfo" style="margin:0"></div>
+    <div class="store-actions"><button type="button" class="btn primary" id="publishBtn">Publish store</button><a class="btn" id="previewStoreBtn" href="shop/" target="_blank" rel="noopener">Open store page</a></div>
+    <div class="hint" id="publishLog"></div>
   </div>
 
   <div class="panel">
@@ -274,6 +295,7 @@
   <div class="dialog" style="max-width:360px">
     <h3>More <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
     <div style="display:grid;gap:8px">
+      <button class="btn" data-more="importBtn">Import items (PDF / CSV / paste)</button>
       <button class="btn" data-more="exportCsvBtn">Export CSV</button>
       <button class="btn" data-more="backupBtn">Backup to file</button>
       <button class="btn" data-more="restoreBtn">Restore from file</button>
@@ -316,7 +338,19 @@
         <div class="field"><label>Payout deposited to</label><select name="payoutTo"><option value="">— not tracked —</option></select></div>
       </div>
     </fieldset>
-    <div class="field full" style="margin-top:12px"><label>Notes</label><textarea name="notes" placeholder="Condition, SKU, storage bin, buyer…"></textarea></div>
+    <fieldset style="margin-top:12px">
+      <legend>Storefront</legend>
+      <div class="grid">
+        <div class="field check" style="padding-top:4px"><input type="checkbox" name="inStore" id="inStoreChk"><label for="inStoreChk">Show in my store</label></div>
+        <div class="field"><label>Store price / unit</label><input name="storePrice" type="number" min="0" step="0.01" placeholder="same as expected" inputmode="decimal"></div>
+        <div class="field"><label>Condition</label><select name="condition"><option value="">—</option><option>New</option><option>Like new</option><option>Very good</option><option>Good</option><option>Fair</option><option>For parts</option></select></div>
+        <div class="field"><label>Listing link (eBay etc, optional)</label><input name="listingUrl" type="url" placeholder="https://"></div>
+        <div class="field full"><label>Photo</label>
+          <div class="photo-row"><img id="photoPreview" alt="" hidden><input type="file" id="photoInput" accept="image/*" hidden><button type="button" class="btn sm" id="photoPick">📷 Take / choose photo</button><button type="button" class="btn sm" id="photoRemove" hidden>Remove</button><span class="hint" id="photoHint" style="margin:0"></span></div>
+        </div>
+      </div>
+    </fieldset>
+    <div class="field full" style="margin-top:12px"><label>Notes (private)</label><textarea name="notes" placeholder="Condition details, SKU, storage bin, buyer…"></textarea></div>
     <div class="preview" id="preview"></div>
     <div class="dlg-actions">
       <button type="button" class="btn danger" id="deleteBtn" style="display:none">Delete</button>
@@ -391,6 +425,54 @@
   </div>
 </div>
 
+<!-- Store settings modal -->
+<div class="modal" id="storeModal">
+  <form class="dialog" id="storeForm" style="max-width:560px" autocomplete="off">
+    <h3>Store settings <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
+    <div class="grid">
+      <div class="field"><label>Store name</label><input name="name" placeholder="Ron's Finds"></div>
+      <div class="field"><label>Tagline</label><input name="tagline" placeholder="Sneakers, games and vintage. Local pickup or shipped."></div>
+      <div class="field"><label>Contact email</label><input name="email" type="email" placeholder="you@example.com"></div>
+      <div class="field"><label>Contact phone (for texts)</label><input name="phone" placeholder="555 123 4567"></div>
+      <div class="field"><label>Instagram handle</label><input name="instagram" placeholder="@yourshop"></div>
+    </div>
+    <div class="hint">Customers see the name, tagline, and whichever contact buttons you fill in. Buying happens by message or through the listing link on each item; the store page takes no payments.</div>
+    <fieldset style="margin-top:12px">
+      <legend>Publishing (GitHub)</legend>
+      <div class="grid">
+        <div class="field"><label>Repository</label><input name="ghRepo" placeholder="username/resale-tracker" spellcheck="false"></div>
+        <div class="field"><label>Access token</label><input name="ghToken" type="password" placeholder="github_pat_…" autocomplete="off"></div>
+      </div>
+      <div class="hint">Publishing writes the catalog and photos into your repository, then GitHub rebuilds the site in about a minute. Create a fine-grained token at github.com/settings/personal-access-tokens/new with access to only this repository and the <b>Contents: Read and write</b> permission. The token is stored only on this device.</div>
+    </fieldset>
+    <div class="dlg-actions"><span></span><div class="right">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="submit" class="btn primary">Save</button>
+    </div></div>
+  </form>
+</div>
+
+<!-- Import modal -->
+<div class="modal" id="importModal">
+  <div class="dialog" style="max-width:760px">
+    <h3>Import items <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
+    <div class="grid">
+      <div class="field full"><label>From a file (PDF invoice or packing slip, CSV, or text)</label><input type="file" id="importFile" accept=".pdf,.csv,.txt,.tsv,text/csv,text/plain,application/pdf"></div>
+      <div class="field full"><label>Or paste lines: <span style="color:var(--text-3)">name, cost, qty, expected price</span> (one item per line, tabs or commas). A header row like "Item, Qty, Price" is understood.</label><textarea id="importText" style="min-height:110px" placeholder="Nike Dunk Low size 10, 65, 1, 130&#10;Funko Pop lot, 3, 12, 12"></textarea></div>
+      <div class="field"><label>Purchase date (all items)</label><input type="date" id="importDate"></div>
+      <div class="field"><label>Paid with (all items)</label><select id="importPaidWith"><option value="">— not tracked —</option></select></div>
+      <div class="field"><label>Bought from (all items)</label><input id="importSource" list="srcList" placeholder="Wholesale Co, Goodwill…"></div>
+      <div class="field"><label>Category (if not in the file)</label><input id="importCategory" list="catList"></div>
+    </div>
+    <div class="store-actions"><button type="button" class="btn" id="importParseBtn">Preview</button><span class="hint" id="importStatus" style="margin:0;align-self:center"></span></div>
+    <div class="imp-wrap" id="importPreview"></div>
+    <div class="dlg-actions"><span></span><div class="right">
+      <button type="button" class="btn" data-close>Cancel</button>
+      <button type="button" class="btn primary" id="importAddBtn" disabled>Add items</button>
+    </div></div>
+  </div>
+</div>
+
 <!-- Settings modal -->
 <div class="modal" id="settingsModal">
   <form class="dialog" id="settingsForm" style="max-width:460px">
@@ -429,7 +511,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.2';
+  const VERSION = '2.3';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -446,6 +528,7 @@
   }
   function withDefaults(s) {
     s.settings = Object.assign({ feePct: 13, currency: '$', onlineLookup: true }, s.settings || {});
+    s.settings.store = Object.assign({ name: '', tagline: '', email: '', phone: '', instagram: '', ghRepo: guessRepo(), ghToken: '', lastPublished: '' }, s.settings.store || {});
     s.items = (s.items || []).map(normalize);
     s.accounts = (s.accounts || []).map(normalizeAcct);
     return s;
@@ -463,7 +546,9 @@
       feePct: it.feePct === '' || it.feePct == null ? null : num(it.feePct), shipOut: num(it.shipOut), listed: !!it.listed,
       paidWith: it.paidWith || '', payoutTo: it.payoutTo || '',
       qtySold: Math.max(0, Math.round(num(it.qtySold))), soldPrice: num(it.soldPrice), soldDate: it.soldDate || '',
-      notes: it.notes || '', createdAt: it.createdAt || Date.now()
+      notes: it.notes || '', createdAt: it.createdAt || Date.now(),
+      inStore: !!it.inStore, storePrice: num(it.storePrice), condition: it.condition || '', listingUrl: it.listingUrl || '',
+      photoVer: Math.max(0, Math.round(num(it.photoVer))), photoPublished: Math.max(0, Math.round(num(it.photoPublished)))
     };
   }
   function normalizeAcct(a) {
@@ -471,6 +556,20 @@
       adjustments: (a.adjustments || []).map(x => ({ id: x.id || uid(), date: x.date || '', amount: num(x.amount), note: x.note || '' })) };
   }
   const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+  function guessRepo() { const m = location.hostname.match(/^([^.]+)\.github\.io$/); const seg = location.pathname.split('/').filter(Boolean)[0]; return m && seg ? `${m[1]}/${seg}` : ''; }
+
+  // ---------- photo storage (IndexedDB; too big for localStorage) ----------
+  const idb = { db: null, open() { if (this.db) return Promise.resolve(this.db); return new Promise((res, rej) => { const r = indexedDB.open('resaleTracker', 1); r.onupgradeneeded = () => r.result.createObjectStore('photos'); r.onsuccess = () => { this.db = r.result; res(this.db); }; r.onerror = () => rej(r.error); }); },
+    async get(id) { try { const db = await this.open(); return await new Promise((res, rej) => { const q = db.transaction('photos').objectStore('photos').get(id); q.onsuccess = () => res(q.result || null); q.onerror = () => rej(q.error); }); } catch (e) { return null; } },
+    async put(id, blob) { const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction('photos', 'readwrite').objectStore('photos').put(blob, id); q.onsuccess = () => res(); q.onerror = () => rej(q.error); }); },
+    async del(id) { try { const db = await this.open(); await new Promise((res, rej) => { const q = db.transaction('photos', 'readwrite').objectStore('photos').delete(id); q.onsuccess = () => res(); q.onerror = () => rej(q.error); }); } catch (e) {} },
+    async keys() { try { const db = await this.open(); return await new Promise((res, rej) => { const q = db.transaction('photos').objectStore('photos').getAllKeys(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); } catch (e) { return []; } } };
+  const thumbUrls = new Map(); // id -> { ver, url }
+  async function thumbUrl(it) { const c = thumbUrls.get(it.id); if (c && c.ver === it.photoVer) return c.url; if (c) URL.revokeObjectURL(c.url); const b = await idb.get(it.id); if (!b) return ''; const url = URL.createObjectURL(b); thumbUrls.set(it.id, { ver: it.photoVer, url }); return url; }
+  async function loadThumbs(root) { for (const img of $$('img[data-photo]', root || document)) { const it = state.items.find(i => i.id === img.dataset.photo); if (!it) continue; const u = await thumbUrl(it); if (u) img.src = u; } }
+  function resizeImage(file, max = 1000, q = 0.82) { return new Promise((res, rej) => { const img = new Image(); const u = URL.createObjectURL(file); img.onload = () => { const sc = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * sc)); c.height = Math.max(1, Math.round(img.height * sc)); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); c.toBlob(b => b ? res(b) : rej(new Error('could not process image')), 'image/jpeg', q); }; img.onerror = () => { URL.revokeObjectURL(u); rej(new Error('not an image')); }; img.src = u; }); }
+  const blobToB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
+  const b64ToBlob = (b64, type = 'image/jpeg') => { const bin = atob(b64); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type }); };
 
   // ---------- math ----------
   function calc(it) {
@@ -513,7 +612,7 @@
 
   // ---------- render ----------
   function render() {
-    renderTiles(); renderAccts(); renderChart(); renderFilterOptions(); renderTable(); renderDatalists();
+    renderTiles(); renderAccts(); renderStore(); renderChart(); renderFilterOptions(); renderTable(); renderDatalists();
   }
 
   function renderTiles() {
@@ -643,10 +742,11 @@
       $$('[data-sample]').forEach(b => b.onclick = e => { e.stopPropagation(); loadSample(); });
       return;
     }
-    const meta = it => [it.category, it.platform ? 'on ' + it.platform : '', it.source ? 'from ' + it.source : ''].filter(Boolean).map(esc).join(' · ');
+    const meta = it => [it.category, it.platform ? 'on ' + it.platform : '', it.source ? 'from ' + it.source : ''].filter(Boolean).map(esc).join(' · ') + (it.inStore ? ' <span class="badge store">in store</span>' : '');
+    const th = it => it.photoVer > 0 ? `<img class="thumb" data-photo="${it.id}" alt="">` : '';
     $('#rows').innerHTML = rows.map(({ it, c }) => `
       <tr data-id="${it.id}">
-        <td><div class="name">${esc(it.name)}</div><div class="meta">${meta(it)}</div></td>
+        <td><div class="row-l">${th(it)}<div><div class="name">${esc(it.name)}</div><div class="meta">${meta(it)}</div></div></div></td>
         <td><span class="badge ${c.status}">${STATUS[c.status]}</span></td>
         <td>${fmtDate(it.purchaseDate)}</td>
         <td class="num">${c.qtySold > 0 && c.qtyLeft > 0 ? `${c.qtySold}/${it.qty}` : it.qty}</td>
@@ -660,7 +760,7 @@
       </tr>`).join('');
     $('#cards').innerHTML = rows.map(({ it, c }) => `
       <div class="card" data-id="${it.id}">
-        <div class="top"><div><div class="name">${esc(it.name)}</div><div class="meta">${meta(it)}</div></div><span class="badge ${c.status}">${STATUS[c.status]}</span></div>
+        <div class="top"><div class="row-l">${th(it)}<div><div class="name">${esc(it.name)}</div><div class="meta">${meta(it)}</div></div></div><span class="badge ${c.status}">${STATUS[c.status]}</span></div>
         <div class="nums">
           <div><small>Cost${it.qty > 1 ? ` × ${c.qtySold > 0 && c.qtyLeft > 0 ? `${c.qtySold}/${it.qty}` : it.qty}` : ''}</small>${fmt(c.unitCost)}</div>
           ${c.qtySold ? `<div><small>Realized</small><span class="${signCls(c.realized)}">${fmt(c.realized)}</span></div>` : `<div><small>Expected</small>${it.expectedPrice ? fmt(it.expectedPrice) : '—'}</div>`}
@@ -670,6 +770,7 @@
       </div>`).join('');
     const t = rows.reduce((a, { c }) => (a.inv += c.invested, a.pot += c.potential, a.rea += c.realized, a.n += 1, a), { inv: 0, pot: 0, rea: 0, n: 0 });
     $('#foot').innerHTML = `<tr><td colspan="4">${t.n} item${t.n === 1 ? '' : 's'} shown</td><td class="num">${fmt(t.inv)}<div class="meta" style="font-weight:400">tied up</div></td><td></td><td></td><td class="num ${signCls(t.pot)}">${fmt(t.pot)}</td><td class="num ${signCls(t.rea)}">${fmt(t.rea)}</td><td></td><td></td></tr>`;
+    loadThumbs();
     $('#cards').insertAdjacentHTML('beforeend', `<div class="sum"><span>${t.n} item${t.n === 1 ? '' : 's'} · ${fmt(t.inv)} tied up</span><span>potential <b class="${signCls(t.pot)}">${fmt(t.pot)}</b> · realized <b class="${signCls(t.rea)}">${fmt(t.rea)}</b></span></div>`);
   }
 
@@ -711,6 +812,7 @@
     const src = it || Object.assign({ purchaseDate: today(), qty: 1, qtySold: 0, feePct: null, paidWith: lastAcct }, prefill || {});
     acctOptions(f.paidWith, src.paidWith, a => a.kind !== 'payout');
     acctOptions(f.payoutTo, src.payoutTo);
+    f.condition.value = src.condition || '';
     for (const el of f) {
       if (!el.name || el.tagName === 'SELECT') continue;
       const v = src[el.name];
@@ -719,10 +821,23 @@
       else el.value = v ?? '';
     }
     f.feePct.placeholder = `default ${state.settings.feePct}%`;
+    f.storePrice.placeholder = src.expectedPrice ? 'same as expected' : '0.00';
+    pendingPhoto = null; pendingPhotoRemove = false; $('#photoHint').textContent = ''; setPhotoUI('');
+    if (it && it.photoVer > 0) thumbUrl(it).then(u => { if (u && itemForm.elements.id.value === it.id) setPhotoUI(u); });
     updatePreview();
     if (modalStack[modalStack.length - 1] === 'scanModal') swapModal('scanModal', 'itemModal'); else openModal('itemModal');
     if (!it && !prefill?.barcode) setTimeout(() => f.name.focus(), 50);
   }
+  let pendingPhoto = null, pendingPhotoRemove = false;
+  function setPhotoUI(url) { const pv = $('#photoPreview'); if (url) { pv.src = url; pv.hidden = false; $('#photoRemove').hidden = false; } else { pv.removeAttribute('src'); pv.hidden = true; $('#photoRemove').hidden = true; } }
+  $('#photoPick').onclick = () => $('#photoInput').click();
+  $('#photoInput').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+    $('#photoHint').textContent = 'Processing…';
+    try { pendingPhoto = await resizeImage(file); pendingPhotoRemove = false; setPhotoUI(URL.createObjectURL(pendingPhoto)); $('#photoHint').textContent = Math.round(pendingPhoto.size / 1024) + ' KB'; }
+    catch (err) { $('#photoHint').textContent = 'Could not use that file: ' + err.message; }
+  });
+  $('#photoRemove').onclick = () => { pendingPhoto = null; pendingPhotoRemove = true; setPhotoUI(''); $('#photoHint').textContent = 'Photo will be removed when you save.'; };
   function readItemForm() {
     const f = itemForm.elements; const o = {};
     for (const el of f) { if (!el.name) continue; o[el.name] = el.type === 'checkbox' ? el.checked : el.value; }
@@ -751,12 +866,15 @@
     const it = normalize(Object.assign({}, existing || {}, raw, { id: existing ? existing.id : undefined }));
     if (it.qtySold > it.qty) it.qtySold = it.qty;
     if (it.qtySold > 0 && !it.soldDate) it.soldDate = today();
+    if (pendingPhoto) { const blob = pendingPhoto; it.photoVer = (it.photoVer || 0) + 1; idb.put(it.id, blob).then(() => loadThumbs()).catch(() => toast('Photo could not be saved')); }
+    else if (pendingPhotoRemove) { it.photoVer = 0; it.photoPublished = 0; idb.del(it.id); }
+    pendingPhoto = null; pendingPhotoRemove = false;
     if (existing) Object.assign(existing, it); else state.items.push(it);
     save(); render(); closeModals(); toast(existing ? 'Item updated' : 'Item added');
   });
   $('#deleteBtn').onclick = () => {
     const id = itemForm.elements.id.value; const it = state.items.find(i => i.id === id);
-    if (it && confirm(`Delete "${it.name}"? This cannot be undone.`)) { state.items = state.items.filter(i => i.id !== id); save(); render(); closeModals(); toast('Item deleted'); }
+    if (it && confirm(`Delete "${it.name}"? This cannot be undone.`)) { state.items = state.items.filter(i => i.id !== id); idb.del(id); save(); render(); closeModals(); toast('Item deleted'); }
   };
 
   // ---------- barcode ----------
@@ -971,6 +1089,136 @@
   $('#addAcctBtn').onclick = () => openAcct(null);
   $('#accts').addEventListener('click', e => { const el = e.target.closest('.acct[data-id]'); if (!el) return; const a = state.accounts.find(x => x.id === el.dataset.id); if (!a) return; const act = e.target.closest('[data-acct-act]')?.dataset.acctAct; openAcct(a, act === 'funds'); });
 
+  // ---------- storefront ----------
+  const storeUrl = () => new URL('shop/', location.href).href;
+  function renderStore() {
+    const st = state.settings.store;
+    const inStore = state.items.filter(it => it.inStore && calc(it).qtyLeft > 0);
+    const parts = [`${inStore.length} item${inStore.length === 1 ? '' : 's'} marked "Show in my store"`];
+    if (st.lastPublished) parts.push(`last published ${new Date(st.lastPublished).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`);
+    if (!st.ghToken) parts.push('not set up yet: add your GitHub token in Store settings');
+    $('#storeInfo').textContent = parts.join(' · ');
+    $('#previewStoreBtn').href = storeUrl();
+  }
+  const storeModal = $('#storeModal'), storeForm = $('#storeForm');
+  function openStoreSettings() { const st = state.settings.store; for (const el of storeForm.elements) if (el.name) el.value = st[el.name] || ''; openModal('storeModal'); }
+  $('#storeSettingsBtn').onclick = openStoreSettings;
+  storeForm.addEventListener('submit', e => { e.preventDefault(); const st = state.settings.store; for (const el of storeForm.elements) if (el.name) st[el.name] = el.value.trim(); save(); renderStore(); closeModals(); toast('Store settings saved'); });
+  const utf8ToB64 = str => btoa(unescape(encodeURIComponent(str)));
+  async function ghReq(path, opts = {}) {
+    const st = state.settings.store;
+    return fetch(`https://api.github.com/repos/${st.ghRepo}/contents/${path}`, Object.assign({ headers: { Authorization: 'Bearer ' + st.ghToken, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' } }, opts));
+  }
+  async function ghPut(path, base64, message) {
+    let sha; const g = await ghReq(path + '?ref=main'); if (g.ok) sha = (await g.json()).sha;
+    const r = await ghReq(path, { method: 'PUT', body: JSON.stringify({ message, content: base64, sha, branch: 'main' }) });
+    if (!r.ok) { const j = await r.json().catch(() => ({})); throw new Error(j.message || ('HTTP ' + r.status)); }
+    return r.json();
+  }
+  async function publishStore() {
+    const st = state.settings.store; const log = m => { $('#publishLog').innerHTML = m; };
+    if (!st.ghToken || !st.ghRepo) { openStoreSettings(); toast('Add your repository and token first'); return; }
+    const rows = state.items.map(it => ({ it, c: calc(it) })).filter(({ it, c }) => it.inStore && c.qtyLeft > 0);
+    const btn = $('#publishBtn'); btn.disabled = true;
+    try {
+      let n = 0;
+      for (const { it } of rows) if (it.photoVer > 0 && it.photoPublished !== it.photoVer) {
+        const blob = await idb.get(it.id); if (!blob) continue;
+        log(`Uploading photo ${++n}: ${esc(it.name)}…`);
+        await ghPut(`shop/img/${it.id}-${it.photoVer}.jpg`, await blobToB64(blob), `Photo: ${it.name}`);
+        it.photoPublished = it.photoVer; save();
+      }
+      log('Writing catalog…');
+      const catalog = { store: { name: st.name, tagline: st.tagline, email: st.email, phone: st.phone, instagram: st.instagram }, updated: new Date().toISOString(),
+        items: rows.map(({ it, c }) => ({ id: it.id, name: it.name, price: it.storePrice || it.expectedPrice, category: it.category, condition: it.condition, qty: c.qtyLeft, url: it.listingUrl, photo: it.photoVer > 0 && it.photoPublished === it.photoVer ? `img/${it.id}-${it.photoVer}.jpg` : '' })) };
+      await ghPut('shop/catalog.json', utf8ToB64(JSON.stringify(catalog, null, 1)), `Update store (${rows.length} item${rows.length === 1 ? '' : 's'})`);
+      st.lastPublished = new Date().toISOString(); save(); renderStore();
+      log(`Published ${rows.length} item${rows.length === 1 ? '' : 's'}${n ? ` and ${n} photo${n === 1 ? '' : 's'}` : ''}. GitHub is rebuilding the site; it goes live in about a minute at <a href="${esc(storeUrl())}" target="_blank" rel="noopener">${esc(storeUrl())}</a>.`);
+      toast('Store published');
+    } catch (err) { log(`<span class="neg-t">Publish failed: ${esc(err.message)}</span>. Check the repository name and token in Store settings.`); }
+    btn.disabled = false;
+  }
+  $('#publishBtn').onclick = publishStore;
+
+  // ---------- bulk import (PDF / CSV / paste) ----------
+  let importRows = [];
+  const csvSplit = line => { const out = []; let cur = '', q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (ch === '"') { if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q; } else if (ch === ',' && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out; };
+  const moneyNum = v => { if (v == null) return null; const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return Number.isFinite(n) ? n : null; };
+  const isNumCell = c => /^[$€£]?\s*-?[\d,]+(\.\d+)?$/.test(c.trim());
+  function parseImport(text) {
+    const lines = text.split(/\r?\n/).map(l => l.replace(/\s+$/, '')).filter(l => l.trim());
+    const split = l => (l.includes('\t') ? l.split('\t') : l.includes(',') ? csvSplit(l) : l.split(/\s{2,}/)).map(c => c.trim());
+    const rows = lines.map(split);
+    const H = { name: /^(item|name|description|title|product)/i, qty: /^(qty|quantity|units|count|pcs)/i, cost: /^(cost|unit ?cost|price|unit ?price|buy|paid|each|rate)$/i, expected: /^(expected|sell|resale|asking|list ?price|retail|msrp)/i, category: /^(category|cat|type|dept)/i, barcode: /^(barcode|upc|ean|sku|code)/i, total: /^(total|amount|ext|line ?total)/i };
+    let map = null;
+    if (rows[0] && rows[0].some(c => H.name.test(c)) && !rows[0].some(isNumCell)) { map = {}; rows[0].forEach((c, i) => { for (const k in H) if (map[k] == null && H[k].test(c)) { map[k] = i; break; } }); rows.shift(); }
+    const out = [];
+    for (const cells of rows) {
+      let r;
+      if (map) {
+        r = { name: cells[map.name] || '', qty: moneyNum(cells[map.qty]), cost: moneyNum(cells[map.cost]), expected: moneyNum(cells[map.expected]), category: cells[map.category] || '', barcode: cells[map.barcode] || '' };
+        if (r.cost == null && map.total != null) { const t = moneyNum(cells[map.total]); if (t != null) r.cost = r.qty ? t / r.qty : t; }
+      } else {
+        let texts = cells.filter(c => c && !isNumCell(c)), nums = cells.filter(isNumCell).map(moneyNum);
+        if (cells.length === 1) { // one blob of text: pull trailing numbers off the end, e.g. "Nike Dunk 2 $65.00"
+          const m = cells[0].match(/^(.*?\S)\s+(?:(\d{1,3})\s+)?[$€£]?\s*([\d,]+\.\d{2})\s*$/);
+          if (m) { texts = [m[1]]; nums = m[2] ? [moneyNum(m[3]), moneyNum(m[2])] : [moneyNum(m[3])]; }
+        }
+        r = { name: texts[0] || '', category: texts[1] || '', barcode: '', cost: nums[0] ?? null, qty: nums[1] ?? null, expected: nums[2] ?? null };
+        if (nums.length === 2 && Number.isInteger(nums[0]) && nums[0] > 0 && nums[0] <= 200 && !Number.isInteger(nums[1])) { r.qty = nums[0]; r.cost = nums[1]; }
+      }
+      if (!r.name || /^(sub)?total|^tax|^shipping|^balance|^invoice|^date|^page|^thank|^order/i.test(r.name)) continue;
+      if (r.cost === null && r.qty === null && r.expected === null && /^(item|items|name|description|title|product|qty|quantity|price|cost|amount|sku)s?$/i.test(r.name)) continue;
+      r.qty = r.qty && r.qty >= 1 ? Math.round(r.qty) : 1; r.cost = r.cost != null && r.cost >= 0 ? r.cost : 0; r.expected = r.expected != null && r.expected >= 0 ? r.expected : 0;
+      out.push(r);
+    }
+    return out;
+  }
+  async function loadPdfJs() {
+    if (window.pdfjsLib) return window.pdfjsLib;
+    await new Promise((res, rej) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = res; sc.onerror = () => rej(new Error('could not load the PDF reader (internet needed)')); document.head.appendChild(sc); });
+    window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    return window.pdfjsLib;
+  }
+  async function pdfToText(file) {
+    const lib = await loadPdfJs(); const doc = await lib.getDocument({ data: await file.arrayBuffer() }).promise; const out = [];
+    for (let p = 1; p <= doc.numPages; p++) {
+      const page = await doc.getPage(p); const tc = await page.getTextContent(); const rows = new Map();
+      for (const t of tc.items) { if (!t.str || !t.str.trim()) continue; const y = Math.round(t.transform[5] / 4); if (!rows.has(y)) rows.set(y, []); rows.get(y).push({ x: t.transform[4], w: t.width || 0, s: t.str }); }
+      for (const y of [...rows.keys()].sort((a, b) => b - a)) { const parts = rows.get(y).sort((a, b) => a.x - b.x); let line = '', end = null; for (const q of parts) { line += (end != null && q.x - end > 12 ? '\t' : (line ? ' ' : '')) + q.s; end = q.x + q.w; } out.push(line); }
+    }
+    return out.join('\n');
+  }
+  function openImport() { importRows = []; $('#importText').value = ''; $('#importFile').value = ''; $('#importPreview').innerHTML = ''; $('#importStatus').textContent = ''; $('#importAddBtn').disabled = true; $('#importDate').value = today(); acctOptions($('#importPaidWith'), state.items.slice().sort((a, b) => b.createdAt - a.createdAt).find(i => i.paidWith)?.paidWith || '', a => a.kind !== 'payout'); $('#importSource').value = ''; $('#importCategory').value = ''; openModal('importModal'); }
+  $('#importBtn').onclick = openImport;
+  $('#importFile').addEventListener('change', async e => {
+    const file = e.target.files[0]; if (!file) return;
+    $('#importStatus').textContent = 'Reading file…';
+    try {
+      const text = /\.pdf$/i.test(file.name) || file.type === 'application/pdf' ? await pdfToText(file) : await file.text();
+      $('#importText').value = text; $('#importStatus').textContent = 'File read. Delete any junk lines, then tap Preview.'; previewImport();
+    } catch (err) { $('#importStatus').textContent = 'Could not read file: ' + err.message; }
+  });
+  function previewImport() {
+    importRows = parseImport($('#importText').value);
+    const cat = $('#importCategory').value.trim();
+    if (!importRows.length) { $('#importPreview').innerHTML = ''; $('#importStatus').textContent = 'No items recognized. Try one item per line: name, cost, qty.'; $('#importAddBtn').disabled = true; return; }
+    $('#importPreview').innerHTML = `<table class="imp-table"><thead><tr><th>Name</th><th>Qty</th><th>Cost/unit</th><th>Expected</th><th>Category</th><th></th></tr></thead><tbody>${importRows.map((r, i) => `<tr data-i="${i}"><td><input class="nm" value="${esc(r.name)}"></td><td><input class="n" type="number" min="1" step="1" value="${r.qty}"></td><td><input class="n" type="number" min="0" step="0.01" value="${r.cost}"></td><td><input class="n" type="number" min="0" step="0.01" value="${r.expected || ''}"></td><td><input value="${esc(r.category || cat)}"></td><td><span class="rm" title="Remove">✕</span></td></tr>`).join('')}</tbody></table>`;
+    $$('#importPreview .rm').forEach(x => x.onclick = () => { x.closest('tr').remove(); $('#importStatus').textContent = `${$$('#importPreview tbody tr').length} items ready`; });
+    $('#importStatus').textContent = `${importRows.length} item${importRows.length === 1 ? '' : 's'} recognized. Fix anything in the table, then Add.`; $('#importAddBtn').disabled = false;
+  }
+  $('#importParseBtn').onclick = previewImport;
+  $('#importAddBtn').onclick = () => {
+    const date = $('#importDate').value || today(), paidWith = $('#importPaidWith').value, source = $('#importSource').value.trim();
+    let n = 0;
+    for (const tr of $$('#importPreview tbody tr')) {
+      const [name, qty, cost, expected, category] = [...tr.querySelectorAll('input')].map(i => i.value.trim());
+      if (!name) continue;
+      state.items.push(normalize({ name, qty, buyPrice: cost, expectedPrice: expected, category, purchaseDate: date, paidWith, source, barcode: importRows[+tr.dataset.i]?.barcode || '' })); n++;
+    }
+    save(); render(); closeModals(); toast(`Added ${n} item${n === 1 ? '' : 's'}`);
+  };
+
   // ---------- settings ----------
   const settingsModal = $('#settingsModal'), settingsForm = $('#settingsForm');
   $('#settingsBtn').onclick = () => { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; f.googleKey.value = state.settings.googleKey || ''; f.googleCx.value = state.settings.googleCx || ''; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; openModal('settingsModal'); };
@@ -979,10 +1227,13 @@
     state.settings.feePct = num(f.feePct.value); state.settings.currency = f.currency.value || '$'; state.settings.onlineLookup = f.onlineLookup.checked; state.settings.googleKey = f.googleKey.value.trim(); state.settings.googleCx = f.googleCx.value.trim();
     save(); render(); closeModals(); toast('Settings saved');
   });
-  $('#wipeBtn').onclick = () => { if (confirm('Delete ALL items and cards? Make a backup first if you want to keep them.') && confirm('Really delete everything?')) { state.items = []; state.accounts = []; save(); render(); closeModals(); toast('All data deleted'); } };
+  $('#wipeBtn').onclick = () => { if (confirm('Delete ALL items and cards? Make a backup first if you want to keep them.') && confirm('Really delete everything?')) { state.items = []; state.accounts = []; idb.keys().then(ks => ks.forEach(k => idb.del(k))); save(); render(); closeModals(); toast('All data deleted'); } };
 
   // ---------- backup / restore / csv ----------
-  $('#backupBtn').onclick = () => download(`resale-backup-${today()}.json`, JSON.stringify(state, null, 2), 'application/json');
+  $('#backupBtn').onclick = async () => {
+    const photos = {}; for (const it of state.items) if (it.photoVer > 0) { const b = await idb.get(it.id); if (b) photos[it.id] = await blobToB64(b); }
+    download(`resale-backup-${today()}.json`, JSON.stringify(Object.assign({}, state, { photos }), null, 1), 'application/json');
+  };
   $('#restoreBtn').onclick = () => $('#restoreFile').click();
   $('#restoreFile').addEventListener('change', async e => {
     const file = e.target.files[0]; if (!file) return;
@@ -990,18 +1241,19 @@
       const s = JSON.parse(await file.text());
       if (!s || !Array.isArray(s.items)) throw new Error('not a backup file');
       const mode = state.items.length ? (confirm(`Backup has ${s.items.length} items. OK = replace your current ${state.items.length} items. Cancel = merge (add new, update matching).`) ? 'replace' : 'merge') : 'replace';
-      if (mode === 'replace') state = withDefaults(s);
+      if (mode === 'replace') { const { photos, ...rest } = s; state = withDefaults(rest); }
       else {
         const byId = Object.fromEntries(state.items.map(i => [i.id, i])); for (const it of s.items.map(normalize)) { if (byId[it.id]) Object.assign(byId[it.id], it); else state.items.push(it); }
         const aById = Object.fromEntries(state.accounts.map(a => [a.id, a])); for (const a of (s.accounts || []).map(normalizeAcct)) { if (aById[a.id]) Object.assign(aById[a.id], a); else state.accounts.push(a); }
       }
+      if (s.photos) for (const id in s.photos) { try { await idb.put(id, b64ToBlob(s.photos[id])); } catch (e2) {} }
       save(); render(); toast(`Restored ${s.items.length} items (${mode})`);
     } catch (err) { alert('Could not restore: ' + err.message); }
     e.target.value = '';
   });
   $('#exportCsvBtn').onclick = () => {
     const names = Object.fromEntries(state.accounts.map(a => [a.id, a.name]));
-    const cols = ['name', 'barcode', 'category', 'source', 'platform', 'status', 'purchaseDate', 'qty', 'buyPrice', 'inboundCost', 'unitCost', 'paidWith', 'expectedPrice', 'feePct', 'shipOut', 'qtySold', 'soldPrice', 'soldDate', 'payoutTo', 'invested', 'potential', 'realized', 'roi', 'notes'];
+    const cols = ['name', 'barcode', 'category', 'source', 'platform', 'status', 'purchaseDate', 'qty', 'buyPrice', 'inboundCost', 'unitCost', 'paidWith', 'expectedPrice', 'feePct', 'shipOut', 'qtySold', 'soldPrice', 'soldDate', 'payoutTo', 'invested', 'potential', 'realized', 'roi', 'inStore', 'storePrice', 'condition', 'listingUrl', 'notes'];
     const lines = [cols.join(',')];
     for (const it of state.items) {
       const c = calc(it);
@@ -1025,9 +1277,9 @@
     const items = [
       { name: 'Nike Dunk Low Panda, size 10', barcode: '196607289068', category: 'Shoes', source: 'Outlet', platform: 'eBay', purchaseDate: d(70), qty: 1, buyPrice: 65, inboundCost: 5.2, expectedPrice: 130, shipOut: 12, qtySold: 1, soldPrice: 125, soldDate: d(50), paidWith: visa, payoutTo: paypal },
       { name: "Vintage Levi's 501, 34x32", category: 'Clothing', source: 'Goodwill', platform: 'Depop', purchaseDate: d(45), qty: 1, buyPrice: 8, inboundCost: 0.7, expectedPrice: 55, shipOut: 6, listed: true, paidWith: cash },
-      { name: 'PlayStation 4 Slim 1TB', barcode: '711719504122', category: 'Electronics', source: 'FB Marketplace', platform: 'eBay', purchaseDate: d(30), qty: 1, buyPrice: 90, inboundCost: 0, expectedPrice: 180, shipOut: 15, listed: true, paidWith: cash },
+      { name: 'PlayStation 4 Slim 1TB', barcode: '711719504122', category: 'Electronics', source: 'FB Marketplace', platform: 'eBay', purchaseDate: d(30), qty: 1, buyPrice: 90, inboundCost: 0, expectedPrice: 180, shipOut: 15, listed: true, paidWith: cash, inStore: true, condition: 'Very good', storePrice: 175 },
       { name: 'LEGO Star Wars 75192 (sealed)', barcode: '673419267397', category: 'Toys', source: 'Target clearance', platform: 'eBay', purchaseDate: d(120), qty: 2, buyPrice: 420, inboundCost: 30, expectedPrice: 780, shipOut: 45, qtySold: 1, soldPrice: 760, soldDate: d(20), paidWith: visa, payoutTo: paypal },
-      { name: 'Coach leather crossbody', category: 'Bags', source: 'Estate sale', platform: 'Poshmark', purchaseDate: d(15), qty: 1, buyPrice: 22, inboundCost: 0, expectedPrice: 85, feePct: 20, shipOut: 0, paidWith: cash },
+      { name: 'Coach leather crossbody', category: 'Bags', source: 'Estate sale', platform: 'Poshmark', purchaseDate: d(15), qty: 1, buyPrice: 22, inboundCost: 0, expectedPrice: 85, feePct: 20, shipOut: 0, paidWith: cash, inStore: true, condition: 'Good' },
       { name: 'Funko Pop lot (12)', category: 'Toys', source: 'Garage sale', platform: 'Mercari', purchaseDate: d(200), qty: 12, buyPrice: 3, inboundCost: 0, expectedPrice: 12, feePct: 10, shipOut: 4.5, qtySold: 7, soldPrice: 11, soldDate: d(95), paidWith: cash },
       { name: 'Broken iPad Air 2 (parts)', category: 'Electronics', source: 'Craigslist', platform: 'eBay', purchaseDate: d(160), qty: 1, buyPrice: 40, inboundCost: 0, expectedPrice: 35, shipOut: 8, qtySold: 1, soldPrice: 30, soldDate: d(140), paidWith: visa },
       { name: 'Patagonia Better Sweater, M', category: 'Clothing', source: 'Thrift', platform: 'Poshmark', purchaseDate: d(8), qty: 1, buyPrice: 14, inboundCost: 1.1, expectedPrice: 60, feePct: 20, shipOut: 0, paidWith: visa },
