@@ -46,3 +46,7 @@ Mark items with "Show in my store" and tap **Publish store**. The app writes `sh
 ## Bulk import
 
 **More > Import items** accepts a PDF invoice or packing slip, a CSV, or pasted lines (`name, cost, qty, expected price`). Review the preview table, fix anything, then add.
+
+## Budget app
+
+A separate personal budget app lives at `budget/` (same address with `/budget/` on the end). It tracks bills, subscriptions, income, one-off spending and monthly limits, with six color themes. Install it to your home screen the same way. Its data and backups are separate from the reselling app.
