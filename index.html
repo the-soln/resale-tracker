@@ -530,7 +530,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.4.2';
+  const VERSION = '2.4.3';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -839,7 +839,7 @@
       if (!el.name || el.tagName === 'SELECT') continue;
       const v = src[el.name];
       if (el.type === 'checkbox') el.checked = !!v;
-      else if (el.type === 'number') el.value = v == null || (v === 0 && !['qty', 'qtySold'].includes(el.name)) ? '' : v;
+      else if (el.type === 'number') el.value = v == null || (v === 0 && !['qty', 'qtySold', 'feePct'].includes(el.name)) ? '' : v;
       else el.value = v ?? '';
     }
     f.feePct.placeholder = `default ${state.settings.feePct}%`;
