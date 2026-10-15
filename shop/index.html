@@ -1,109 +1,203 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="ocean">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Shop</title>
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#2a78d6">
 <style>
-  :root { color-scheme: light; --bg: #f4f4f1; --surface: #fcfcfb; --surface-2: #f0efec; --border: #e2e1dc; --text: #0b0b0b; --text-2: #52514e; --text-3: #8a8985; --accent: #2a78d6; --accent-ink: #fff; --good-bg: #e3f5ec; --good-fg: #0f6b3f; }
-  @media (prefers-color-scheme: dark) { :root { color-scheme: dark; --bg: #121211; --surface: #1a1a19; --surface-2: #242423; --border: #33332f; --text: #fff; --text-2: #c3c2b7; --text-3: #8a8985; --accent: #3987e5; --good-bg: #123526; --good-fg: #6fd39f; } }
+  :root { color-scheme: light; --bg: #f3f4f6; --surface: #fff; --surface-2: #f1f2f4; --border: #e5e7eb; --text: #0f172a; --text-2: #475569; --text-3: #94a3b8; --good: #0f6b3f; --good-bg: #e3f5ec; --shadow: 0 10px 30px rgba(15,23,42,.08); --shadow-sm: 0 2px 8px rgba(15,23,42,.06); --accent: #2a78d6; --accent-2: #1baf7a; --tint: #e2edfb; --on-accent: #fff; }
+  :root[data-mode="dark"] { color-scheme: dark; --bg: #0f1115; --surface: #171a21; --surface-2: #1f2330; --border: #2a2f3d; --text: #f1f5f9; --text-2: #b6bdcc; --text-3: #7c8498; --good: #6fd39f; --good-bg: #123526; --shadow: 0 10px 30px rgba(0,0,0,.45); --shadow-sm: 0 2px 8px rgba(0,0,0,.35); }
+  :root[data-theme="ocean"] { --accent: #2a78d6; --accent-2: #1baf7a; --tint: #e2edfb; }
+  :root[data-theme="sunset"] { --accent: #eb6834; --accent-2: #e87ba4; --tint: #fde9e0; }
+  :root[data-theme="forest"] { --accent: #0c8a3e; --accent-2: #1baf7a; --tint: #e3f5ec; }
+  :root[data-theme="lavender"] { --accent: #5b47c9; --accent-2: #b26be0; --tint: #ebe8fb; }
+  :root[data-theme="midnight"] { --accent: #3987e5; --accent-2: #9085e9; --tint: #14294a; }
+  :root[data-theme="slate"] { --accent: #334155; --accent-2: #64748b; --tint: #e2e8f0; }
+  :root[data-mode="dark"][data-theme="ocean"] { --accent: #3987e5; --accent-2: #199e70; --tint: #14294a; }
+  :root[data-mode="dark"][data-theme="sunset"] { --accent: #f07a4a; --accent-2: #d55181; --tint: #3a2218; }
+  :root[data-mode="dark"][data-theme="forest"] { --accent: #22a356; --accent-2: #199e70; --tint: #123526; }
+  :root[data-mode="dark"][data-theme="lavender"] { --accent: #7c6cf0; --accent-2: #c77ff2; --tint: #2a2350; }
+  :root[data-mode="dark"][data-theme="slate"] { --accent: #64748b; --accent-2: #94a3b8; --tint: #1e293b; }
   * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 20px 16px 60px; }
-  header { margin-bottom: 16px; }
-  header h1 { font-size: 26px; margin: 0; letter-spacing: -.01em; }
-  header p { margin: 4px 0 0; color: var(--text-2); }
-  .contact { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  .btn { display: inline-block; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 8px; padding: 7px 12px; cursor: pointer; text-decoration: none; font: inherit; white-space: nowrap; }
-  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
-  .btn.sm { padding: 5px 10px; font-size: 13px; }
-  .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0; }
-  .filters input { flex: 1; min-width: 160px; border: 1px solid var(--border); background: var(--surface); border-radius: 8px; padding: 8px 10px; font: inherit; color: inherit; }
-  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
-  .chip { border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
-  .chip.on { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 0 16px 60px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--border); background: var(--surface); color: var(--text); border-radius: 12px; padding: 8px 14px; cursor: pointer; text-decoration: none; font: inherit; font-weight: 500; white-space: nowrap; }
+  .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: var(--on-accent); border-color: transparent; }
+  .btn.sm { padding: 6px 10px; font-size: 13px; border-radius: 9px; }
+  .btn.ghost { background: transparent; border-color: transparent; }
+
+  .cover { position: relative; margin: 0 -16px 0; min-height: 190px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; overflow: hidden; }
+  .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cover::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.05), rgba(0,0,0,.55)); }
+  .cover .in { position: relative; z-index: 1; padding: 44px 16px 18px; max-width: 1100px; margin: 0 auto; }
+  .cover h1 { margin: 0; font-size: 30px; letter-spacing: -.02em; text-shadow: 0 2px 10px rgba(0,0,0,.3); }
+  .cover p { margin: 4px 0 0; opacity: .95; text-shadow: 0 1px 6px rgba(0,0,0,.35); }
+  .cover .loc { font-size: 13px; opacity: .9; margin-top: 2px; }
+  .contact { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .contact .btn { background: rgba(255,255,255,.92); color: #0f172a; border-color: transparent; }
+  .contact .btn.primary { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; }
+
+  .toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin: 14px 0 10px; }
+  .toolbar input, .toolbar select { border: 1px solid var(--border); background: var(--surface); border-radius: 12px; padding: 9px 11px; font: inherit; color: inherit; }
+  .toolbar input { flex: 1; min-width: 150px; }
+  .chips { display: flex; gap: 6px; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; margin-bottom: 8px; scrollbar-width: none; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip { flex: none; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; }
+  .chip.on { background: linear-gradient(135deg, var(--accent), var(--accent-2)); color: #fff; border-color: transparent; }
+  .count { font-size: 12px; color: var(--text-3); margin: 0 0 8px; }
+
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
-  .card .ph { aspect-ratio: 1; background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 34px; overflow: hidden; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; box-shadow: var(--shadow-sm); transition: transform .12s; }
+  .card:hover { transform: translateY(-2px); }
+  .card .ph { aspect-ratio: 1; background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 34px; overflow: hidden; position: relative; }
   .card .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .card .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 4px; flex: 1; }
-  .card .name { font-weight: 600; line-height: 1.3; }
-  .card .price { font-size: 18px; font-weight: 700; }
+  .card .ph .n { position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,.55); color: #fff; font-size: 11px; padding: 2px 7px; border-radius: 999px; }
+  .card .body { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 3px; flex: 1; }
+  .card .name { font-weight: 600; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
   .card .meta { font-size: 12px; color: var(--text-3); }
-  .card .cond { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--good-bg); color: var(--good-fg); font-weight: 600; align-self: flex-start; }
-  .card .acts { margin-top: auto; padding-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .card .price { font-size: 17px; font-weight: 700; margin-top: auto; padding-top: 4px; }
+  .cond { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--good-bg); color: var(--good); font-weight: 600; }
   .empty { text-align: center; color: var(--text-3); padding: 50px 10px; }
-  footer { margin-top: 30px; font-size: 12px; color: var(--text-3); text-align: center; }
-  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.85); display: none; align-items: center; justify-content: center; z-index: 10; cursor: zoom-out; }
-  .lightbox.open { display: flex; }
-  .lightbox img { max-width: 96vw; max-height: 92vh; border-radius: 8px; }
+
+  .section { margin-top: 26px; }
+  .section h2 { font-size: 18px; margin: 0 0 10px; letter-spacing: -.01em; }
+  .about { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 14px 16px; box-shadow: var(--shadow-sm); white-space: pre-line; }
+  .panel h3 { margin: 0 0 6px; font-size: 14px; color: var(--text-2); }
+  .strip { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+  .sold { flex: none; width: 120px; }
+  .sold .ph { width: 120px; height: 120px; border-radius: 12px; background: var(--surface-2); overflow: hidden; position: relative; display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 28px; }
+  .sold .ph img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(.4); }
+  .sold .ph span { position: absolute; left: 8px; top: 8px; background: #0f172a; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+  .sold .nm { font-size: 12px; margin-top: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  footer { margin-top: 36px; font-size: 12px; color: var(--text-3); text-align: center; }
+
+  /* detail */
+  .detail { display: none; }
+  .detail.open { display: block; }
+  .detail .back { margin: 12px 0; }
+  .carousel { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; gap: 8px; border-radius: 16px; scrollbar-width: none; background: var(--surface-2); }
+  .carousel::-webkit-scrollbar { display: none; }
+  .carousel img { flex: none; width: 100%; aspect-ratio: 1; object-fit: cover; scroll-snap-align: start; border-radius: 16px; cursor: zoom-in; }
+  .carousel .noph { flex: none; width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; font-size: 60px; color: var(--text-3); }
+  .dots { display: flex; justify-content: center; gap: 6px; margin: 8px 0; }
+  .dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--border); }
+  .dots i.on { background: var(--accent); }
+  .dwrap { display: grid; grid-template-columns: 1fr; gap: 16px; }
+  @media (min-width: 760px) { .dwrap { grid-template-columns: 1.1fr 1fr; align-items: start; } }
+  .dinfo h1 { font-size: 24px; margin: 0 0 6px; letter-spacing: -.01em; }
+  .dinfo .price { font-size: 28px; font-weight: 700; margin: 4px 0 10px; }
+  .specs { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 14px; margin: 10px 0 14px; }
+  .specs dt { color: var(--text-3); } .specs dd { margin: 0; }
+  .dinfo .desc { white-space: pre-line; color: var(--text-2); margin-bottom: 14px; }
+  .dinfo .acts { display: flex; gap: 8px; flex-wrap: wrap; }
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.9); display: none; align-items: center; justify-content: center; z-index: 10; cursor: zoom-out; }
+  .lightbox.open { display: flex; } .lightbox img { max-width: 96vw; max-height: 92vh; border-radius: 8px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 14px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  .toast.show { opacity: 1; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1 id="storeName">Shop</h1>
-    <p id="tagline"></p>
-    <div class="contact" id="contact"></div>
-  </header>
-  <div class="filters">
-    <input type="search" id="q" placeholder="Search…">
+  <div class="cover" id="cover"><div class="in"><h1 id="storeName">Shop</h1><p id="tagline"></p><div class="loc" id="loc"></div><div class="contact" id="contact"></div></div></div>
+  <div id="listView">
+    <div class="toolbar"><input type="search" id="q" placeholder="Search…"><select id="sort"><option value="new">Newest</option><option value="lo">Price: low to high</option><option value="hi">Price: high to low</option></select></div>
     <div class="chips" id="chips"></div>
+    <div class="count" id="count"></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden></div>
+    <div class="section" id="soldSec" hidden><h2>Recently sold</h2><div class="strip" id="soldStrip"></div></div>
+    <div class="section" id="aboutSec" hidden><div class="about" id="about"></div></div>
   </div>
-  <div class="grid" id="grid"></div>
-  <div class="empty" id="empty" hidden></div>
+  <div class="detail" id="detail"></div>
   <footer id="foot"></footer>
 </div>
 <div class="lightbox" id="lightbox"><img id="lightImg" alt=""></div>
+<div class="toast" id="toast"></div>
 <script>
 (async () => {
   const $ = s => document.querySelector(s);
   const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const money = n => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  let toastT; const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2000); };
   let data = null;
   try { const r = await fetch('catalog.json?t=' + Date.now(), { cache: 'no-store' }); if (r.ok) data = await r.json(); } catch (e) {}
-  if (!data || !Array.isArray(data.items)) { $('#empty').hidden = false; $('#empty').textContent = 'Nothing listed yet. Check back soon.'; $('#q').parentElement.hidden = true; return; }
+  if (!data || !Array.isArray(data.items)) { $('#empty').hidden = false; $('#empty').textContent = 'Nothing listed yet. Check back soon.'; $('.toolbar').hidden = true; return; }
   const st = data.store || {};
+  // theme
+  const root = document.documentElement; root.dataset.theme = st.theme || 'ocean';
+  const mq = window.matchMedia('(prefers-color-scheme: dark)');
+  const setMode = () => { root.dataset.mode = st.theme === 'midnight' ? 'dark' : (st.mode === 'dark' || (st.mode !== 'light' && mq.matches)) ? 'dark' : 'light'; $('meta[name=theme-color]').setAttribute('content', getComputedStyle(root).getPropertyValue('--accent').trim()); };
+  setMode(); mq.addEventListener('change', setMode);
+  // header
   document.title = st.name || 'Shop';
-  $('#storeName').textContent = st.name || 'Shop';
-  $('#tagline').textContent = st.tagline || '';
-  const money = n => '$' + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  $('#storeName').textContent = st.name || 'Shop'; $('#tagline').textContent = st.tagline || ''; $('#loc').textContent = st.location ? '📍 ' + st.location : '';
+  if (st.banner) $('#cover').insertAdjacentHTML('afterbegin', `<img src="${esc(st.banner)}" alt="">`);
+  const phoneDigits = (st.phone || '').replace(/[^\d+]/g, '');
   const contact = [];
-  if (st.email) contact.push(`<a class="btn primary" href="mailto:${esc(st.email)}?subject=${encodeURIComponent('Item from your shop')}">Email me</a>`);
-  if (st.phone) contact.push(`<a class="btn" href="sms:${esc(st.phone.replace(/[^\d+]/g, ''))}">Text ${esc(st.phone)}</a>`);
-  if (st.instagram) contact.push(`<a class="btn" href="https://instagram.com/${esc(st.instagram.replace(/^@/, ''))}" target="_blank" rel="noopener">Instagram @${esc(st.instagram.replace(/^@/, ''))}</a>`);
+  if (st.email) contact.push(`<a class="btn primary" href="mailto:${esc(st.email)}?subject=${encodeURIComponent('Question about ' + (st.name || 'your shop'))}">✉️ Email</a>`);
+  if (st.phone) contact.push(`<a class="btn" href="sms:${esc(phoneDigits)}">💬 Text</a>`);
+  if (st.instagram) contact.push(`<a class="btn" href="https://instagram.com/${esc(st.instagram.replace(/^@/, ''))}" target="_blank" rel="noopener">📸 @${esc(st.instagram.replace(/^@/, ''))}</a>`);
   $('#contact').innerHTML = contact.join('');
-  const items = data.items.filter(i => i && i.name);
+  // about / policies
+  const panels = [];
+  if (st.about) panels.push(`<div class="panel"><h3>About</h3>${esc(st.about)}</div>`);
+  if (st.policies) panels.push(`<div class="panel"><h3>Shipping &amp; pickup</h3>${esc(st.policies)}</div>`);
+  if (panels.length) { $('#about').innerHTML = panels.join(''); $('#aboutSec').hidden = false; }
+  // sold strip
+  const sold = (data.sold || []).filter(s => s && s.name);
+  if (sold.length) { $('#soldSec').hidden = false; $('#soldStrip').innerHTML = sold.map(s => `<div class="sold"><div class="ph">${s.photo ? `<img src="${esc(s.photo)}" alt="" loading="lazy">` : '🏷️'}<span>Sold</span></div><div class="nm">${esc(s.name)}</div></div>`).join(''); }
+  // items
+  const items = data.items.filter(i => i && i.name).map(i => Object.assign({ photos: [] }, i, { photos: Array.isArray(i.photos) ? i.photos : (i.photo ? [i.photo] : []) }));
   const cats = [...new Set(items.map(i => i.category).filter(Boolean))].sort();
-  let cat = '', q = '';
+  let cat = '', q = '', sortBy = 'new';
   $('#chips').innerHTML = cats.length > 1 ? `<span class="chip on" data-cat="">All</span>` + cats.map(c => `<span class="chip" data-cat="${esc(c)}">${esc(c)}</span>`).join('') : '';
-  $('#chips').addEventListener('click', e => { const ch = e.target.closest('.chip'); if (!ch) return; cat = ch.dataset.cat; document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === ch)); render(); });
-  $('#q').addEventListener('input', e => { q = e.target.value.trim().toLowerCase(); render(); });
-  function msgLink(i) {
-    const subject = encodeURIComponent(`Interested in: ${i.name}`);
-    if (st.email) return `<a class="btn primary sm" href="mailto:${esc(st.email)}?subject=${subject}">I want this</a>`;
-    if (st.phone) return `<a class="btn primary sm" href="sms:${esc(st.phone.replace(/[^\d+]/g, ''))}?body=${subject}">I want this</a>`;
-    return '';
-  }
-  function render() {
-    const list = items.filter(i => (!cat || i.category === cat) && (!q || `${i.name} ${i.category} ${i.condition}`.toLowerCase().includes(q)));
+  $('#chips').addEventListener('click', e => { const ch = e.target.closest('.chip'); if (!ch) return; cat = ch.dataset.cat; document.querySelectorAll('.chip').forEach(x => x.classList.toggle('on', x === ch)); renderList(); });
+  $('#q').addEventListener('input', e => { q = e.target.value.trim().toLowerCase(); renderList(); });
+  $('#sort').addEventListener('change', e => { sortBy = e.target.value; renderList(); });
+  const wantLink = i => { const subject = encodeURIComponent(`Interested in: ${i.name} (${money(i.price)})`); if (st.email) return `<a class="btn primary" href="mailto:${esc(st.email)}?subject=${subject}">I want this</a>`; if (st.phone) return `<a class="btn primary" href="sms:${esc(phoneDigits)}?body=${subject}">I want this</a>`; return ''; };
+  function renderList() {
+    let list = items.filter(i => (!cat || i.category === cat) && (!q || `${i.name} ${i.brand} ${i.size} ${i.category} ${i.condition} ${i.desc}`.toLowerCase().includes(q)));
+    if (sortBy === 'lo') list.sort((a, b) => a.price - b.price); else if (sortBy === 'hi') list.sort((a, b) => b.price - a.price); else list.sort((a, b) => (b.added || '').localeCompare(a.added || ''));
     $('#grid').innerHTML = list.map(i => `
-      <div class="card">
-        <div class="ph">${i.photo ? `<img src="${esc(i.photo)}" alt="${esc(i.name)}" loading="lazy" data-full="${esc(i.photo)}">` : '🏷️'}</div>
-        <div class="body">
-          <div class="name">${esc(i.name)}</div>
-          <div class="price">${money(i.price)}</div>
-          ${i.condition ? `<span class="cond">${esc(i.condition)}</span>` : ''}
-          <div class="meta">${[i.category, i.qty > 1 ? `${i.qty} available` : ''].filter(Boolean).map(esc).join(' · ')}</div>
-          <div class="acts">${msgLink(i)}${i.url ? `<a class="btn sm" href="${esc(i.url)}" target="_blank" rel="noopener">View listing</a>` : ''}</div>
-        </div>
+      <div class="card" data-id="${esc(i.id)}">
+        <div class="ph">${i.photos[0] ? `<img src="${esc(i.photos[0])}" alt="${esc(i.name)}" loading="lazy">` : '🏷️'}${i.photos.length > 1 ? `<span class="n">${i.photos.length} photos</span>` : ''}</div>
+        <div class="body"><div class="name">${esc(i.name)}</div><div class="meta">${[i.brand, i.size ? 'Size ' + i.size : '', i.condition].filter(Boolean).map(esc).join(' · ')}</div><div class="price">${money(i.price)}</div></div>
       </div>`).join('');
+    $('#count').textContent = `${list.length} item${list.length === 1 ? '' : 's'}${cat ? ' in ' + cat : ''}`;
     $('#empty').hidden = list.length > 0; $('#empty').textContent = items.length ? 'No items match.' : 'Nothing listed right now. Check back soon.';
   }
-  $('#grid').addEventListener('click', e => { const img = e.target.closest('img[data-full]'); if (!img) return; $('#lightImg').src = img.dataset.full; $('#lightbox').classList.add('open'); });
+  $('#grid').addEventListener('click', e => { const c = e.target.closest('.card[data-id]'); if (c) location.hash = 'item=' + encodeURIComponent(c.dataset.id); });
+  function renderDetail(id) {
+    const i = items.find(x => x.id === id); const d = $('#detail');
+    if (!i) { d.classList.remove('open'); $('#listView').hidden = false; return; }
+    const photos = i.photos;
+    d.innerHTML = `<button class="btn ghost back" id="backBtn">‹ Back to all items</button>
+      <div class="dwrap">
+        <div><div class="carousel" id="carousel">${photos.length ? photos.map(p => `<img src="${esc(p)}" alt="${esc(i.name)}" data-full="${esc(p)}">`).join('') : '<div class="noph">🏷️</div>'}</div>${photos.length > 1 ? `<div class="dots" id="dots">${photos.map((_, k) => `<i class="${k ? '' : 'on'}"></i>`).join('')}</div>` : ''}</div>
+        <div class="dinfo">
+          <h1>${esc(i.name)}</h1>
+          ${i.condition ? `<span class="cond">${esc(i.condition)}</span>` : ''}
+          <div class="price">${money(i.price)}</div>
+          <dl class="specs">${[['Brand', i.brand], ['Size', i.size], ['Category', i.category], ['Available', i.qty > 1 ? i.qty : '']].filter(x => x[1]).map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+          ${i.desc ? `<div class="desc">${esc(i.desc)}</div>` : ''}
+          <div class="acts">${wantLink(i)}${i.url ? `<a class="btn" href="${esc(i.url)}" target="_blank" rel="noopener">View listing</a>` : ''}<button class="btn" id="shareBtn">Share</button></div>
+        </div>
+      </div>`;
+    $('#listView').hidden = true; d.classList.add('open'); window.scrollTo(0, 0);
+    document.title = `${i.name} · ${st.name || 'Shop'}`;
+    $('#backBtn').onclick = () => { if (history.length > 1) history.back(); else location.hash = ''; };
+    $('#shareBtn').onclick = async () => { const url = location.href; const text = `${i.name} – ${money(i.price)}`; try { if (navigator.share) await navigator.share({ title: i.name, text, url }); else { await navigator.clipboard.writeText(url); toast('Link copied'); } } catch (e) {} };
+    const car = $('#carousel'); if (car && photos.length > 1) car.addEventListener('scroll', () => { const k = Math.round(car.scrollLeft / car.clientWidth); document.querySelectorAll('#dots i').forEach((x, n) => x.classList.toggle('on', n === k)); }, { passive: true });
+    d.querySelectorAll('img[data-full]').forEach(img => img.onclick = () => { $('#lightImg').src = img.dataset.full; $('#lightbox').classList.add('open'); });
+  }
+  function route() { const m = location.hash.match(/^#item=(.+)$/); if (m) renderDetail(decodeURIComponent(m[1])); else { $('#detail').classList.remove('open'); $('#listView').hidden = false; document.title = st.name || 'Shop'; } }
+  window.addEventListener('hashchange', route);
   $('#lightbox').addEventListener('click', () => $('#lightbox').classList.remove('open'));
-  render();
-  if (data.updated) $('#foot').textContent = 'Updated ' + new Date(data.updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  renderList(); route();
+  if (data.updated) $('#foot').textContent = `Updated ${new Date(data.updated).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
 })();
 </script>
 </body>

@@ -102,8 +102,12 @@
   .thumb { width: 44px; height: 44px; object-fit: cover; border-radius: 6px; background: var(--surface-2); flex: none; display: block; }
   .row-l { display: flex; gap: 10px; align-items: center; }
   .store-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
-  .photo-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .photo-row img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: var(--surface-2); }
+  .photo-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .photo-row .pth { position: relative; width: 72px; height: 72px; }
+  .photo-row .pth img { width: 72px; height: 72px; object-fit: cover; border-radius: 8px; background: var(--surface-2); display: block; }
+  .photo-row .pth .rm { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--text); color: var(--bg); font-size: 12px; cursor: pointer; line-height: 1; }
+  .photo-row .pth .first { position: absolute; left: 4px; bottom: 4px; font-size: 10px; background: rgba(0,0,0,.6); color: #fff; padding: 1px 5px; border-radius: 999px; }
+  .banner-prev { width: 100%; max-height: 120px; object-fit: cover; border-radius: 10px; display: block; margin-bottom: 6px; }
   .imp-wrap { overflow-x: auto; margin-top: 10px; }
   .imp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .imp-table th, .imp-table td { padding: 4px 4px; border-bottom: 1px solid var(--border); text-align: left; }
@@ -346,8 +350,12 @@
         <div class="field"><label>Store price / unit</label><input name="storePrice" type="number" min="0" step="0.01" placeholder="same as expected" inputmode="decimal"></div>
         <div class="field"><label>Condition</label><select name="condition"><option value="">—</option><option>New</option><option>Like new</option><option>Very good</option><option>Good</option><option>Fair</option><option>For parts</option></select></div>
         <div class="field"><label>Listing link (eBay etc, optional)</label><input name="listingUrl" type="url" placeholder="https://"></div>
-        <div class="field full"><label>Photo</label>
-          <div class="photo-row"><img id="photoPreview" alt="" hidden><input type="file" id="photoInput" accept="image/*" hidden><button type="button" class="btn sm" id="photoPick">📷 Take / choose photo</button><button type="button" class="btn sm" id="photoRemove" hidden>Remove</button><span class="hint" id="photoHint" style="margin:0"></span></div>
+        <div class="field"><label>Brand</label><input name="brand" list="brandList" placeholder="Nike, Sony…"></div>
+        <div class="field"><label>Size</label><input name="size" placeholder="10, M, 32x30…"></div>
+        <div class="field full"><label>Public description (shown in store)</label><textarea name="storeDesc" placeholder="Worn twice, comes with box. Smoke-free home."></textarea></div>
+        <div class="field full"><label>Photos <span style="color:var(--text-3)">(first one is the cover)</span></label>
+          <div class="photo-row" id="photoRow"></div>
+          <div class="photo-row" style="margin-top:6px"><input type="file" id="photoInput" accept="image/*" multiple hidden><button type="button" class="btn sm" id="photoPick">📷 Add photos</button><span class="hint" id="photoHint" style="margin:0"></span></div>
         </div>
       </div>
     </fieldset>
@@ -436,13 +444,21 @@
       <div class="field"><label>Contact email</label><input name="email" type="email" placeholder="you@example.com"></div>
       <div class="field"><label>Contact phone (for texts)</label><input name="phone" placeholder="555 123 4567"></div>
       <div class="field"><label>Instagram handle</label><input name="instagram" placeholder="@yourshop"></div>
+      <div class="field"><label>Location (city)</label><input name="location" placeholder="Austin, TX"></div>
+      <div class="field"><label>Theme</label><select name="theme"><option value="ocean">Ocean</option><option value="sunset">Sunset</option><option value="forest">Forest</option><option value="lavender">Lavender</option><option value="midnight">Midnight</option><option value="slate">Slate</option></select></div>
+      <div class="field"><label>Appearance</label><select name="mode"><option value="auto">Auto (match visitor)</option><option value="light">Light</option><option value="dark">Dark</option></select></div>
+      <div class="field full"><label>Banner photo</label><img id="bannerPrev" class="banner-prev" alt="" hidden><input type="file" id="bannerInput" accept="image/*" hidden><div class="store-actions" style="margin:0"><button type="button" class="btn sm" id="bannerPick">Choose banner</button><button type="button" class="btn sm" id="bannerRemove" hidden>Remove</button></div></div>
+      <div class="field full"><label>About (a few sentences)</label><textarea name="about" placeholder="Hand-picked sneakers, games and vintage finds. Everything is inspected and photographed as-is."></textarea></div>
+      <div class="field full"><label>Shipping &amp; pickup policy</label><textarea name="policies" placeholder="Local pickup in North Austin. Shipping at cost, usually USPS Priority. Payment by Venmo, Cash App or cash on pickup."></textarea></div>
     </div>
-    <div class="hint">Customers see the name, tagline, and whichever contact buttons you fill in. Buying happens by message or through the listing link on each item; the store page takes no payments.</div>
+    <div class="hint">Customers see the name, tagline, banner, about, policy, and whichever contact buttons you fill in. Buying happens by message or through the listing link on each item; the store page takes no payments.</div>
     <fieldset style="margin-top:12px">
       <legend>Publishing (GitHub)</legend>
       <div class="grid">
         <div class="field"><label>Repository</label><input name="ghRepo" placeholder="username/resale-tracker" spellcheck="false"></div>
         <div class="field"><label>Access token</label><input name="ghToken" type="password" placeholder="github_pat_…" autocomplete="off"></div>
+        <div class="field"><label>Folder in repository</label><input name="ghPath" placeholder="shop (blank = repository root)" spellcheck="false"></div>
+        <div class="field"><label>Store address (optional)</label><input name="storeUrl" type="url" placeholder="https://yourshop.com" spellcheck="false"></div>
       </div>
       <div class="hint">Publishing writes the catalog and photos into your repository, then GitHub rebuilds the site in about a minute. Create a fine-grained token at github.com/settings/personal-access-tokens/new with access to only this repository and the <b>Contents: Read and write</b> permission. The token is stored only on this device.</div>
     </fieldset>
@@ -506,13 +522,14 @@
 <datalist id="catList"></datalist>
 <datalist id="srcList"></datalist>
 <datalist id="platList"></datalist>
+<datalist id="brandList"></datalist>
 <div class="toast" id="toast"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js" defer></script>
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.3';
+  const VERSION = '2.4';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -529,7 +546,7 @@
   }
   function withDefaults(s) {
     s.settings = Object.assign({ feePct: 13, currency: '$', onlineLookup: true }, s.settings || {});
-    s.settings.store = Object.assign({ name: '', tagline: '', email: '', phone: '', instagram: '', ghRepo: guessRepo(), ghToken: '', lastPublished: '' }, s.settings.store || {});
+    s.settings.store = Object.assign({ name: '', tagline: '', about: '', policies: '', location: '', theme: 'ocean', mode: 'auto', email: '', phone: '', instagram: '', bannerId: '', bannerPub: false, ghRepo: guessRepo(), ghToken: '', ghPath: 'shop', storeUrl: '', lastPublished: '' }, s.settings.store || {});
     s.items = (s.items || []).map(normalize);
     s.accounts = (s.accounts || []).map(normalizeAcct);
     return s;
@@ -549,7 +566,8 @@
       qtySold: Math.max(0, Math.round(num(it.qtySold))), soldPrice: num(it.soldPrice), soldDate: it.soldDate || '',
       notes: it.notes || '', createdAt: it.createdAt || Date.now(),
       inStore: !!it.inStore, storePrice: num(it.storePrice), condition: it.condition || '', listingUrl: it.listingUrl || '',
-      photoVer: Math.max(0, Math.round(num(it.photoVer))), photoPublished: Math.max(0, Math.round(num(it.photoPublished)))
+      brand: it.brand || '', size: it.size || '', storeDesc: it.storeDesc || '',
+      photos: Array.isArray(it.photos) && it.photos.length ? it.photos.filter(p => p && p.id).map(p => ({ id: p.id, pub: !!p.pub })) : (num(it.photoVer) > 0 ? [{ id: it.id, pub: num(it.photoPublished) === num(it.photoVer) }] : [])
     };
   }
   function normalizeAcct(a) {
@@ -565,9 +583,9 @@
     async put(id, blob) { const db = await this.open(); return new Promise((res, rej) => { const q = db.transaction('photos', 'readwrite').objectStore('photos').put(blob, id); q.onsuccess = () => res(); q.onerror = () => rej(q.error); }); },
     async del(id) { try { const db = await this.open(); await new Promise((res, rej) => { const q = db.transaction('photos', 'readwrite').objectStore('photos').delete(id); q.onsuccess = () => res(); q.onerror = () => rej(q.error); }); } catch (e) {} },
     async keys() { try { const db = await this.open(); return await new Promise((res, rej) => { const q = db.transaction('photos').objectStore('photos').getAllKeys(); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); } catch (e) { return []; } } };
-  const thumbUrls = new Map(); // id -> { ver, url }
-  async function thumbUrl(it) { const c = thumbUrls.get(it.id); if (c && c.ver === it.photoVer) return c.url; if (c) URL.revokeObjectURL(c.url); const b = await idb.get(it.id); if (!b) return ''; const url = URL.createObjectURL(b); thumbUrls.set(it.id, { ver: it.photoVer, url }); return url; }
-  async function loadThumbs(root) { for (const img of $$('img[data-photo]', root || document)) { const it = state.items.find(i => i.id === img.dataset.photo); if (!it) continue; const u = await thumbUrl(it); if (u) img.src = u; } }
+  const thumbUrls = new Map(); // photo id -> object URL
+  async function thumbUrl(photoId) { if (thumbUrls.has(photoId)) return thumbUrls.get(photoId); const b = await idb.get(photoId); if (!b) return ''; const url = URL.createObjectURL(b); thumbUrls.set(photoId, url); return url; }
+  async function loadThumbs(root) { for (const img of $$('img[data-photo]', root || document)) { const u = await thumbUrl(img.dataset.photo); if (u) img.src = u; } }
   function resizeImage(file, max = 1000, q = 0.82) { return new Promise((res, rej) => { const img = new Image(); const u = URL.createObjectURL(file); img.onload = () => { const sc = Math.min(1, max / Math.max(img.width, img.height)); const c = document.createElement('canvas'); c.width = Math.max(1, Math.round(img.width * sc)); c.height = Math.max(1, Math.round(img.height * sc)); c.getContext('2d').drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(u); c.toBlob(b => b ? res(b) : rej(new Error('could not process image')), 'image/jpeg', q); }; img.onerror = () => { URL.revokeObjectURL(u); rej(new Error('not an image')); }; img.src = u; }); }
   const blobToB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
   const b64ToBlob = (b64, type = 'image/jpeg') => { const bin = atob(b64); const a = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) a[i] = bin.charCodeAt(i); return new Blob([a], { type }); };
@@ -605,6 +623,7 @@
   const fmt = n => { const c = state.settings.currency; const s = Math.abs(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); return (n < -0.005 ? '−' : '') + c + s; };
   const pct = n => n == null ? '—' : (n * 100).toFixed(0) + '%';
   const signCls = n => n > 0.005 ? 'pos-t' : n < -0.005 ? 'neg-t' : '';
+  const parse = s => { if (!s) return null; const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d, 12); };
   const fmtDate = d => d ? new Date(d + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' }) : '—';
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
   const STATUS = { stock: 'In stock', listed: 'Listed', partial: 'Partial', sold: 'Sold' };
@@ -709,6 +728,7 @@
     $('#catList').innerHTML = uniq(state.items.map(i => i.category)).map(v => `<option value="${esc(v)}">`).join('');
     $('#srcList').innerHTML = uniq(state.items.map(i => i.source)).map(v => `<option value="${esc(v)}">`).join('');
     $('#platList').innerHTML = uniq(state.items.map(i => i.platform)).map(v => `<option value="${esc(v)}">`).join('');
+    $('#brandList').innerHTML = uniq(state.items.map(i => i.brand)).map(v => `<option value="${esc(v)}">`).join('');
   }
   function acctOptions(sel, current, filterKind) {
     const opts = state.accounts.filter(a => !filterKind || filterKind(a));
@@ -744,7 +764,7 @@
       return;
     }
     const meta = it => [it.category, it.platform ? 'on ' + it.platform : '', it.source ? 'from ' + it.source : ''].filter(Boolean).map(esc).join(' · ') + (it.inStore ? ' <span class="badge store">in store</span>' : '');
-    const th = it => it.photoVer > 0 ? `<img class="thumb" data-photo="${it.id}" alt="">` : '';
+    const th = it => it.photos.length ? `<img class="thumb" data-photo="${it.photos[0].id}" alt="">` : '';
     $('#rows').innerHTML = rows.map(({ it, c }) => `
       <tr data-id="${it.id}">
         <td><div class="row-l">${th(it)}<div><div class="name">${esc(it.name)}</div><div class="meta">${meta(it)}</div></div></div></td>
@@ -823,22 +843,25 @@
     }
     f.feePct.placeholder = `default ${state.settings.feePct}%`;
     f.storePrice.placeholder = src.expectedPrice ? 'same as expected' : '0.00';
-    pendingPhoto = null; pendingPhotoRemove = false; $('#photoHint').textContent = ''; setPhotoUI('');
-    if (it && it.photoVer > 0) thumbUrl(it).then(u => { if (u && itemForm.elements.id.value === it.id) setPhotoUI(u); });
+    formPhotos = it ? it.photos.map(p => ({ id: p.id, pub: p.pub })) : []; pendingBlobs = {}; removedPhotos = []; $('#photoHint').textContent = ''; renderPhotoRow();
     updatePreview();
     if (modalStack[modalStack.length - 1] === 'scanModal') swapModal('scanModal', 'itemModal'); else openModal('itemModal');
     if (!it && !prefill?.barcode) setTimeout(() => f.name.focus(), 50);
   }
-  let pendingPhoto = null, pendingPhotoRemove = false;
-  function setPhotoUI(url) { const pv = $('#photoPreview'); if (url) { pv.src = url; pv.hidden = false; $('#photoRemove').hidden = false; } else { pv.removeAttribute('src'); pv.hidden = true; $('#photoRemove').hidden = true; } }
+  let formPhotos = [], pendingBlobs = {}, removedPhotos = [];
+  async function renderPhotoRow() {
+    const row = $('#photoRow');
+    row.innerHTML = formPhotos.map((p, i) => `<div class="pth" data-pid="${p.id}"><img alt="" data-photo="${p.id}">${i === 0 ? '<span class="first">cover</span>' : ''}<button type="button" class="rm" title="Remove">✕</button></div>`).join('') || '<span class="hint" style="margin:0">No photos yet.</span>';
+    for (const p of formPhotos) { const img = row.querySelector(`[data-pid="${p.id}"] img`); if (!img) continue; img.src = pendingBlobs[p.id] ? URL.createObjectURL(pendingBlobs[p.id]) : (await thumbUrl(p.id)) || ''; }
+  }
+  $('#photoRow').addEventListener('click', e => { const rm = e.target.closest('.rm'); const el = e.target.closest('[data-pid]'); if (!el) return; const id = el.dataset.pid; if (rm) { formPhotos = formPhotos.filter(p => p.id !== id); if (pendingBlobs[id]) delete pendingBlobs[id]; else removedPhotos.push(id); renderPhotoRow(); return; } const i = formPhotos.findIndex(p => p.id === id); if (i > 0) { const [p] = formPhotos.splice(i, 1); formPhotos.unshift(p); renderPhotoRow(); toast('Set as cover'); } });
   $('#photoPick').onclick = () => $('#photoInput').click();
   $('#photoInput').addEventListener('change', async e => {
-    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
-    $('#photoHint').textContent = 'Processing…';
-    try { pendingPhoto = await resizeImage(file); pendingPhotoRemove = false; setPhotoUI(URL.createObjectURL(pendingPhoto)); $('#photoHint').textContent = Math.round(pendingPhoto.size / 1024) + ' KB'; }
-    catch (err) { $('#photoHint').textContent = 'Could not use that file: ' + err.message; }
+    const files = [...e.target.files]; e.target.value = ''; if (!files.length) return;
+    $('#photoHint').textContent = 'Processing…'; let kb = 0;
+    for (const file of files) { try { const blob = await resizeImage(file); const id = uid(); pendingBlobs[id] = blob; formPhotos.push({ id, pub: false }); kb += blob.size / 1024; } catch (err) { toast('Skipped a file: ' + err.message); } }
+    $('#photoHint').textContent = `${formPhotos.length} photo${formPhotos.length === 1 ? '' : 's'} · tap a photo to make it the cover`; renderPhotoRow();
   });
-  $('#photoRemove').onclick = () => { pendingPhoto = null; pendingPhotoRemove = true; setPhotoUI(''); $('#photoHint').textContent = 'Photo will be removed when you save.'; };
   function readItemForm() {
     const f = itemForm.elements; const o = {};
     for (const el of f) { if (!el.name) continue; o[el.name] = el.type === 'checkbox' ? el.checked : el.value; }
@@ -867,15 +890,16 @@
     const it = normalize(Object.assign({}, existing || {}, raw, { id: existing ? existing.id : undefined }));
     if (it.qtySold > it.qty) it.qtySold = it.qty;
     if (it.qtySold > 0 && !it.soldDate) it.soldDate = today();
-    if (pendingPhoto) { const blob = pendingPhoto; it.photoVer = (it.photoVer || 0) + 1; idb.put(it.id, blob).then(() => loadThumbs()).catch(() => toast('Photo could not be saved')); }
-    else if (pendingPhotoRemove) { it.photoVer = 0; it.photoPublished = 0; idb.del(it.id); }
-    pendingPhoto = null; pendingPhotoRemove = false;
+    it.photos = formPhotos.map(p => ({ id: p.id, pub: p.pub }));
+    for (const id in pendingBlobs) idb.put(id, pendingBlobs[id]).catch(() => toast('A photo could not be saved'));
+    for (const id of removedPhotos) { idb.del(id); thumbUrls.delete(id); }
+    pendingBlobs = {}; removedPhotos = []; formPhotos = [];
     if (existing) Object.assign(existing, it); else state.items.push(it);
     save(); render(); closeModals(); toast(existing ? 'Item updated' : 'Item added');
   });
   $('#deleteBtn').onclick = () => {
     const id = itemForm.elements.id.value; const it = state.items.find(i => i.id === id);
-    if (it && confirm(`Delete "${it.name}"? This cannot be undone.`)) { state.items = state.items.filter(i => i.id !== id); idb.del(id); save(); render(); closeModals(); toast('Item deleted'); }
+    if (it && confirm(`Delete "${it.name}"? This cannot be undone.`)) { for (const p of it.photos) idb.del(p.id); state.items = state.items.filter(i => i.id !== id); save(); render(); closeModals(); toast('Item deleted'); }
   };
 
   // ---------- barcode ----------
@@ -1091,7 +1115,8 @@
   $('#accts').addEventListener('click', e => { const el = e.target.closest('.acct[data-id]'); if (!el) return; const a = state.accounts.find(x => x.id === el.dataset.id); if (!a) return; const act = e.target.closest('[data-acct-act]')?.dataset.acctAct; openAcct(a, act === 'funds'); });
 
   // ---------- storefront ----------
-  const storeUrl = () => new URL('shop/', location.href).href;
+  const storeUrl = () => { const st = state.settings.store; if (st.storeUrl) return st.storeUrl.replace(/\/?$/, '/'); const p = (st.ghPath || '').replace(/^\/+|\/+$/g, ''); return new URL(p ? p + '/' : './', location.href).href; };
+  const pathPrefix = () => { const p = (state.settings.store.ghPath || '').replace(/^\/+|\/+$/g, ''); return p ? p + '/' : ''; };
   function renderStore() {
     const st = state.settings.store;
     const inStore = state.items.filter(it => it.inStore && calc(it).qtyLeft > 0);
@@ -1102,9 +1127,20 @@
     $('#previewStoreBtn').href = storeUrl();
   }
   const storeModal = $('#storeModal'), storeForm = $('#storeForm');
-  function openStoreSettings() { const st = state.settings.store; for (const el of storeForm.elements) if (el.name) el.value = st[el.name] || ''; openModal('storeModal'); }
+  let bannerBlob = null, bannerRemove = false;
+  async function openStoreSettings() { const st = state.settings.store; for (const el of storeForm.elements) if (el.name) el.value = st[el.name] || (el.name === 'theme' ? 'ocean' : el.name === 'mode' ? 'auto' : ''); bannerBlob = null; bannerRemove = false; const bp = $('#bannerPrev'); const u = st.bannerId ? await thumbUrl(st.bannerId) : ''; if (u) { bp.src = u; bp.hidden = false; $('#bannerRemove').hidden = false; } else { bp.hidden = true; $('#bannerRemove').hidden = true; } openModal('storeModal'); }
+  $('#bannerPick').onclick = () => $('#bannerInput').click();
+  $('#bannerInput').addEventListener('change', async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { bannerBlob = await resizeImage(f, 1600, 0.8); bannerRemove = false; const bp = $('#bannerPrev'); bp.src = URL.createObjectURL(bannerBlob); bp.hidden = false; $('#bannerRemove').hidden = false; } catch (err) { toast('Could not use that image'); } });
+  $('#bannerRemove').onclick = () => { bannerBlob = null; bannerRemove = true; $('#bannerPrev').hidden = true; $('#bannerRemove').hidden = true; };
   $('#storeSettingsBtn').onclick = openStoreSettings;
-  storeForm.addEventListener('submit', e => { e.preventDefault(); const st = state.settings.store; for (const el of storeForm.elements) if (el.name) st[el.name] = el.value.trim(); save(); renderStore(); closeModals(); toast('Store settings saved'); });
+  storeForm.addEventListener('submit', e => {
+    e.preventDefault(); const st = state.settings.store; const prevRepo = st.ghRepo + '|' + st.ghPath;
+    for (const el of storeForm.elements) if (el.name) st[el.name] = el.value.trim();
+    if (bannerBlob) { if (st.bannerId) { idb.del(st.bannerId); thumbUrls.delete(st.bannerId); } st.bannerId = 'banner-' + uid(); st.bannerPub = false; idb.put(st.bannerId, bannerBlob); }
+    else if (bannerRemove && st.bannerId) { idb.del(st.bannerId); thumbUrls.delete(st.bannerId); st.bannerId = ''; st.bannerPub = false; }
+    if (prevRepo !== st.ghRepo + '|' + st.ghPath) { for (const it of state.items) for (const p of it.photos) p.pub = false; st.bannerPub = false; }
+    bannerBlob = null; bannerRemove = false; save(); renderStore(); closeModals(); toast('Store settings saved');
+  });
   const utf8ToB64 = str => btoa(unescape(encodeURIComponent(str)));
   async function ghReq(path, opts = {}) {
     const st = state.settings.store;
@@ -1122,17 +1158,24 @@
     const rows = state.items.map(it => ({ it, c: calc(it) })).filter(({ it, c }) => it.inStore && c.qtyLeft > 0);
     const btn = $('#publishBtn'); btn.disabled = true;
     try {
-      let n = 0;
-      for (const { it } of rows) if (it.photoVer > 0 && it.photoPublished !== it.photoVer) {
-        const blob = await idb.get(it.id); if (!blob) continue;
-        log(`Uploading photo ${++n}: ${esc(it.name)}…`);
-        await ghPut(`shop/img/${it.id}-${it.photoVer}.jpg`, await blobToB64(blob), `Photo: ${it.name}`);
-        it.photoPublished = it.photoVer; save();
+      let n = 0; const pre = pathPrefix();
+      const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 60);
+      const soldRows = state.items.map(it => ({ it, c: calc(it) })).filter(({ it, c }) => it.inStore && c.qtyLeft === 0 && it.soldDate && parse(it.soldDate) >= cutoff).sort((a, b) => b.it.soldDate.localeCompare(a.it.soldDate)).slice(0, 12);
+      const toUpload = [];
+      for (const { it } of [...rows, ...soldRows]) for (const p of it.photos.filter(p => !p.pub)) toUpload.push({ p, it });
+      if (st.bannerId && !st.bannerPub) toUpload.push({ p: { id: st.bannerId }, banner: true });
+      for (const u of toUpload) {
+        const blob = await idb.get(u.p.id); if (!blob) { u.p.pub = true; continue; }
+        log(`Uploading photo ${++n} of ${toUpload.length}…`);
+        await ghPut(`${pre}img/${u.p.id}.jpg`, await blobToB64(blob), u.banner ? 'Store banner' : `Photo: ${u.it.name}`);
+        if (u.banner) st.bannerPub = true; else u.p.pub = true; save();
       }
       log('Writing catalog…');
-      const catalog = { store: { name: st.name, tagline: st.tagline, email: st.email, phone: st.phone, instagram: st.instagram }, updated: new Date().toISOString(),
-        items: rows.map(({ it, c }) => ({ id: it.id, name: it.name, price: it.storePrice || it.expectedPrice, category: it.category, condition: it.condition, qty: c.qtyLeft, url: it.listingUrl, photo: it.photoVer > 0 && it.photoPublished === it.photoVer ? `img/${it.id}-${it.photoVer}.jpg` : '' })) };
-      await ghPut('shop/catalog.json', utf8ToB64(JSON.stringify(catalog, null, 1)), `Update store (${rows.length} item${rows.length === 1 ? '' : 's'})`);
+      const addedDate = it => it.purchaseDate || new Date(it.createdAt).toISOString().slice(0, 10);
+      const catalog = { v: 2, store: { name: st.name, tagline: st.tagline, about: st.about, policies: st.policies, location: st.location, theme: st.theme || 'ocean', mode: st.mode || 'auto', email: st.email, phone: st.phone, instagram: st.instagram, banner: st.bannerId && st.bannerPub ? `img/${st.bannerId}.jpg` : '' }, updated: new Date().toISOString(),
+        items: rows.map(({ it, c }) => ({ id: it.id, name: it.name, price: it.storePrice || it.expectedPrice, category: it.category, condition: it.condition, brand: it.brand, size: it.size, desc: it.storeDesc, qty: c.qtyLeft, url: it.listingUrl, added: addedDate(it), photos: it.photos.filter(p => p.pub).map(p => `img/${p.id}.jpg`) })),
+        sold: soldRows.map(({ it }) => ({ id: it.id, name: it.name, date: it.soldDate, photo: it.photos.find(p => p.pub) ? `img/${it.photos.find(p => p.pub).id}.jpg` : '' })) };
+      await ghPut(`${pre}catalog.json`, utf8ToB64(JSON.stringify(catalog, null, 1)), `Update store (${rows.length} item${rows.length === 1 ? '' : 's'})`);
       st.lastPublished = new Date().toISOString(); save(); renderStore();
       log(`Published ${rows.length} item${rows.length === 1 ? '' : 's'}${n ? ` and ${n} photo${n === 1 ? '' : 's'}` : ''}. GitHub is rebuilding the site; it goes live in about a minute at <a href="${esc(storeUrl())}" target="_blank" rel="noopener">${esc(storeUrl())}</a>.`);
       toast('Store published');
@@ -1232,7 +1275,8 @@
 
   // ---------- backup / restore / csv ----------
   $('#backupBtn').onclick = async () => {
-    const photos = {}; for (const it of state.items) if (it.photoVer > 0) { const b = await idb.get(it.id); if (b) photos[it.id] = await blobToB64(b); }
+    const photos = {}; const ids = state.items.flatMap(it => it.photos.map(p => p.id)); if (state.settings.store.bannerId) ids.push(state.settings.store.bannerId);
+    for (const id of ids) { const b = await idb.get(id); if (b) photos[id] = await blobToB64(b); }
     download(`resale-backup-${today()}.json`, JSON.stringify(Object.assign({}, state, { photos }), null, 1), 'application/json');
   };
   $('#restoreBtn').onclick = () => $('#restoreFile').click();
@@ -1254,7 +1298,7 @@
   });
   $('#exportCsvBtn').onclick = () => {
     const names = Object.fromEntries(state.accounts.map(a => [a.id, a.name]));
-    const cols = ['name', 'barcode', 'category', 'source', 'platform', 'status', 'purchaseDate', 'qty', 'buyPrice', 'inboundCost', 'unitCost', 'paidWith', 'expectedPrice', 'feePct', 'shipOut', 'qtySold', 'soldPrice', 'soldDate', 'payoutTo', 'invested', 'potential', 'realized', 'roi', 'inStore', 'storePrice', 'condition', 'listingUrl', 'notes'];
+    const cols = ['name', 'barcode', 'category', 'source', 'platform', 'status', 'purchaseDate', 'qty', 'buyPrice', 'inboundCost', 'unitCost', 'paidWith', 'expectedPrice', 'feePct', 'shipOut', 'qtySold', 'soldPrice', 'soldDate', 'payoutTo', 'invested', 'potential', 'realized', 'roi', 'inStore', 'storePrice', 'condition', 'brand', 'size', 'listingUrl', 'notes'];
     const lines = [cols.join(',')];
     for (const it of state.items) {
       const c = calc(it);
@@ -1278,9 +1322,9 @@
     const items = [
       { name: 'Nike Dunk Low Panda, size 10', barcode: '196607289068', category: 'Shoes', source: 'Outlet', platform: 'eBay', purchaseDate: d(70), qty: 1, buyPrice: 65, inboundCost: 5.2, expectedPrice: 130, shipOut: 12, qtySold: 1, soldPrice: 125, soldDate: d(50), paidWith: visa, payoutTo: paypal },
       { name: "Vintage Levi's 501, 34x32", category: 'Clothing', source: 'Goodwill', platform: 'Depop', purchaseDate: d(45), qty: 1, buyPrice: 8, inboundCost: 0.7, expectedPrice: 55, shipOut: 6, listed: true, paidWith: cash },
-      { name: 'PlayStation 4 Slim 1TB', barcode: '711719504122', category: 'Electronics', source: 'FB Marketplace', platform: 'eBay', purchaseDate: d(30), qty: 1, buyPrice: 90, inboundCost: 0, expectedPrice: 180, shipOut: 15, listed: true, paidWith: cash, inStore: true, condition: 'Very good', storePrice: 175 },
+      { name: 'PlayStation 4 Slim 1TB', barcode: '711719504122', category: 'Electronics', source: 'FB Marketplace', platform: 'eBay', purchaseDate: d(30), qty: 1, buyPrice: 90, inboundCost: 0, expectedPrice: 180, shipOut: 15, listed: true, paidWith: cash, inStore: true, condition: 'Very good', storePrice: 175, brand: 'Sony', storeDesc: 'Works perfectly, comes with one controller and HDMI cable. Factory reset.' },
       { name: 'LEGO Star Wars 75192 (sealed)', barcode: '673419267397', category: 'Toys', source: 'Target clearance', platform: 'eBay', purchaseDate: d(120), qty: 2, buyPrice: 420, inboundCost: 30, expectedPrice: 780, shipOut: 45, qtySold: 1, soldPrice: 760, soldDate: d(20), paidWith: visa, payoutTo: paypal },
-      { name: 'Coach leather crossbody', category: 'Bags', source: 'Estate sale', platform: 'Poshmark', purchaseDate: d(15), qty: 1, buyPrice: 22, inboundCost: 0, expectedPrice: 85, feePct: 20, shipOut: 0, paidWith: cash, inStore: true, condition: 'Good' },
+      { name: 'Coach leather crossbody', category: 'Bags', source: 'Estate sale', platform: 'Poshmark', purchaseDate: d(15), qty: 1, buyPrice: 22, inboundCost: 0, expectedPrice: 85, feePct: 20, shipOut: 0, paidWith: cash, inStore: true, condition: 'Good', brand: 'Coach', storeDesc: 'Genuine leather, light wear on corners, clean interior.' },
       { name: 'Funko Pop lot (12)', category: 'Toys', source: 'Garage sale', platform: 'Mercari', purchaseDate: d(200), qty: 12, buyPrice: 3, inboundCost: 0, expectedPrice: 12, feePct: 10, shipOut: 4.5, qtySold: 7, soldPrice: 11, soldDate: d(95), paidWith: cash },
       { name: 'Broken iPad Air 2 (parts)', category: 'Electronics', source: 'Craigslist', platform: 'eBay', purchaseDate: d(160), qty: 1, buyPrice: 40, inboundCost: 0, expectedPrice: 35, shipOut: 8, qtySold: 1, soldPrice: 30, soldDate: d(140), paidWith: visa },
       { name: 'Patagonia Better Sweater, M', category: 'Clothing', source: 'Thrift', platform: 'Poshmark', purchaseDate: d(8), qty: 1, buyPrice: 14, inboundCost: 1.1, expectedPrice: 60, feePct: 20, shipOut: 0, paidWith: visa },
