@@ -460,6 +460,7 @@
         <div class="field"><label>Folder in repository</label><input name="ghPath" placeholder="shop (blank = repository root)" spellcheck="false"></div>
         <div class="field"><label>Store address (optional)</label><input name="storeUrl" type="url" placeholder="https://yourshop.com" spellcheck="false"></div>
       </div>
+      <div class="store-actions"><button type="button" class="btn sm" id="ghTestBtn">Test connection</button><span class="hint" id="ghTestMsg" style="margin:0;align-self:center"></span></div>
       <div class="hint">Publishing writes the catalog and photos into your repository, then GitHub rebuilds the site in about a minute. Create a fine-grained token at github.com/settings/personal-access-tokens/new with access to only this repository and the <b>Contents: Read and write</b> permission. The token is stored only on this device.</div>
     </fieldset>
     <div class="dlg-actions"><span></span><div class="right">
@@ -529,7 +530,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.4';
+  const VERSION = '2.4.1';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -1141,6 +1142,21 @@
     if (prevRepo !== st.ghRepo + '|' + st.ghPath) { for (const it of state.items) for (const p of it.photos) p.pub = false; st.bannerPub = false; }
     bannerBlob = null; bannerRemove = false; save(); renderStore(); closeModals(); toast('Store settings saved');
   });
+  $('#ghTestBtn').onclick = async () => {
+    const f = storeForm.elements; const msg = $('#ghTestMsg'); const repo = f.ghRepo.value.trim(), token = f.ghToken.value.trim();
+    if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(repo)) { msg.innerHTML = '<span class="neg-t">Repository should look like username/repo-name</span>'; return; }
+    if (!token) { msg.innerHTML = '<span class="neg-t">Paste the token first</span>'; return; }
+    if (!/^(github_pat_|ghp_)/.test(token)) { msg.innerHTML = `<span class="neg-t">That doesn't look like a GitHub token (should start with github_pat_). You pasted ${token.length} characters starting "${esc(token.slice(0, 6))}".</span>`; return; }
+    msg.textContent = 'Checking…';
+    try {
+      const r = await fetch(`https://api.github.com/repos/${repo}`, { headers: { Authorization: 'Bearer ' + token, Accept: 'application/vnd.github+json' } });
+      if (r.status === 401) { msg.innerHTML = '<span class="neg-t">GitHub rejected the token (bad credentials). Re-copy it, or generate a new one.</span>'; return; }
+      if (r.status === 404) { msg.innerHTML = '<span class="neg-t">Token works, but it cannot see this repository. Check the name, and that the repository is included in the token’s access list.</span>'; return; }
+      if (!r.ok) { msg.innerHTML = `<span class="neg-t">GitHub answered ${r.status}</span>`; return; }
+      const j = await r.json(); const perm = j.permissions || {};
+      msg.innerHTML = perm.push ? `<span class="pos-t">Connected to ${esc(j.full_name)} with write access. You're good to publish.</span>` : `<span class="neg-t">Connected to ${esc(j.full_name)} but the token is read-only. Set Contents to Read and write on the token.</span>`;
+    } catch (e) { msg.innerHTML = '<span class="neg-t">Could not reach GitHub (offline?)</span>'; }
+  };
   const utf8ToB64 = str => btoa(unescape(encodeURIComponent(str)));
   async function ghReq(path, opts = {}) {
     const st = state.settings.store;
