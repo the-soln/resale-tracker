@@ -108,6 +108,16 @@
   .photo-row .pth .rm { position: absolute; top: -6px; right: -6px; width: 22px; height: 22px; border-radius: 50%; border: 0; background: var(--text); color: var(--bg); font-size: 12px; cursor: pointer; line-height: 1; }
   .photo-row .pth .first { position: absolute; left: 4px; bottom: 4px; font-size: 10px; background: rgba(0,0,0,.6); color: #fff; padding: 1px 5px; border-radius: 999px; }
   .banner-prev { width: 100%; max-height: 120px; object-fit: cover; border-radius: 10px; display: block; margin-bottom: 6px; }
+  .sprint-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .sprint-row:last-child { border-bottom: 0; }
+  .sprint-row .thumbs { display: flex; gap: 4px; flex: none; }
+  .sprint-row .thumbs img, .sprint-row .thumbs .ph { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: var(--surface-2); display: flex; align-items: center; justify-content: center; color: var(--text-3); font-size: 18px; }
+  .sprint-row .mid { flex: 1; min-width: 0; }
+  .sprint-row .nm { font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sprint-row .meta { font-size: 12px; color: var(--text-3); }
+  .sprint-row .acts { display: flex; gap: 4px; flex: none; }
+  .sprint-row.done { opacity: .75; }
+  .sprint-filter { display: flex; gap: 6px; margin-bottom: 8px; }
   .imp-wrap { overflow-x: auto; margin-top: 10px; }
   .imp-table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .imp-table th, .imp-table td { padding: 4px 4px; border-bottom: 1px solid var(--border); text-align: left; }
@@ -247,7 +257,7 @@
   <div class="panel" id="storePanel">
     <h2>Storefront <span>a public page of what you have for sale</span><button class="btn sm" id="storeSettingsBtn">Store settings</button></h2>
     <div class="hint" id="storeInfo" style="margin:0"></div>
-    <div class="store-actions"><button type="button" class="btn primary" id="publishBtn">Publish store</button><a class="btn" id="previewStoreBtn" href="shop/" target="_blank" rel="noopener">Open store page</a></div>
+    <div class="store-actions"><button type="button" class="btn primary" id="publishBtn">Publish store</button><button type="button" class="btn" id="sprintBtn">📷 Add photos</button><a class="btn" id="previewStoreBtn" href="shop/" target="_blank" rel="noopener">Open store page</a></div>
     <div class="hint" id="publishLog"></div>
   </div>
 
@@ -470,6 +480,19 @@
   </form>
 </div>
 
+<!-- Photo sprint modal -->
+<div class="modal" id="sprintModal">
+  <div class="dialog" style="max-width:640px">
+    <h3>Add photos <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
+    <div class="hint" style="margin:0 0 8px">Tap the camera on each item and shoot. Each photo saves to that item right away. When you're done, close this and tap <b>Publish store</b>.</div>
+    <div class="sprint-filter"><button type="button" class="btn sm" id="sprintMissing">Missing photos</button><button type="button" class="btn sm ghost" id="sprintAll">All store items</button></div>
+    <div id="sprintList"></div>
+    <input type="file" id="sprintCam" accept="image/*" capture="environment" hidden>
+    <input type="file" id="sprintGal" accept="image/*" multiple hidden>
+    <div class="dlg-actions"><span class="hint" id="sprintStatus" style="margin:0;align-self:center"></span><div class="right"><button type="button" class="btn" data-close>Close</button><button type="button" class="btn primary" id="sprintPublish">Publish store</button></div></div>
+  </div>
+</div>
+
 <!-- Import modal -->
 <div class="modal" id="importModal">
   <div class="dialog" style="max-width:760px">
@@ -530,7 +553,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.4.3';
+  const VERSION = '2.5';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -1199,6 +1222,38 @@
     btn.disabled = false;
   }
   $('#publishBtn').onclick = publishStore;
+
+  // ---------- photo sprint ----------
+  let sprintMode = 'missing', sprintTarget = null;
+  function openSprint() { sprintMode = state.items.some(it => it.inStore && calc(it).qtyLeft > 0 && !it.photos.length) ? 'missing' : 'all'; renderSprint(); openModal('sprintModal'); }
+  function renderSprint() {
+    const rows = state.items.filter(it => it.inStore && calc(it).qtyLeft > 0).filter(it => sprintMode === 'all' || !it.photos.length).sort((a, b) => a.name.localeCompare(b.name));
+    const missing = state.items.filter(it => it.inStore && calc(it).qtyLeft > 0 && !it.photos.length).length;
+    $('#sprintMissing').classList.toggle('ghost', sprintMode !== 'missing'); $('#sprintAll').classList.toggle('ghost', sprintMode !== 'all');
+    $('#sprintMissing').textContent = `Missing photos (${missing})`;
+    $('#sprintStatus').textContent = missing ? `${missing} item${missing === 1 ? '' : 's'} still without a photo` : 'Every store item has a photo.';
+    $('#sprintList').innerHTML = rows.length ? rows.map(it => `
+      <div class="sprint-row ${it.photos.length ? 'done' : ''}" data-id="${it.id}">
+        <div class="thumbs">${it.photos.length ? it.photos.slice(0, 2).map(p => `<img data-photo="${p.id}" alt="">`).join('') : '<div class="ph">🏷️</div>'}</div>
+        <div class="mid"><div class="nm">${esc(it.name)}</div><div class="meta">${[it.size, `qty ${calc(it).qtyLeft}`, it.photos.length ? `${it.photos.length} photo${it.photos.length === 1 ? '' : 's'}` : 'no photo'].filter(Boolean).map(esc).join(' · ')}</div></div>
+        <div class="acts"><button type="button" class="btn sm primary" data-sprint="cam">📷</button><button type="button" class="btn sm" data-sprint="gal" title="Choose from gallery">🖼️</button></div>
+      </div>`).join('') : '<div class="empty">Nothing here. Mark items "Show in my store" first.</div>';
+    loadThumbs($('#sprintList'));
+  }
+  $('#sprintBtn').onclick = openSprint;
+  $('#sprintMissing').onclick = () => { sprintMode = 'missing'; renderSprint(); };
+  $('#sprintAll').onclick = () => { sprintMode = 'all'; renderSprint(); };
+  $('#sprintPublish').onclick = () => { closeModals(); setTimeout(publishStore, 100); };
+  $('#sprintList').addEventListener('click', e => { const b = e.target.closest('[data-sprint]'); const row = e.target.closest('[data-id]'); if (!b || !row) return; sprintTarget = row.dataset.id; (b.dataset.sprint === 'cam' ? $('#sprintCam') : $('#sprintGal')).click(); });
+  async function sprintFiles(files) {
+    const it = state.items.find(i => i.id === sprintTarget); if (!it || !files.length) return;
+    $('#sprintStatus').textContent = 'Saving photo…'; let n = 0;
+    for (const file of files) { try { const blob = await resizeImage(file); const id = uid(); await idb.put(id, blob); it.photos.push({ id, pub: false }); n++; } catch (err) { toast('Skipped a file: ' + err.message); } }
+    save(); renderSprint(); renderTable(); if (n) toast(`${n} photo${n === 1 ? '' : 's'} added to ${it.name.slice(0, 30)}`);
+    if (sprintMode === 'missing') { const next = $('#sprintList .sprint-row:not(.done)'); if (next) next.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  }
+  $('#sprintCam').addEventListener('change', e => { const f = [...e.target.files]; e.target.value = ''; sprintFiles(f); });
+  $('#sprintGal').addEventListener('change', e => { const f = [...e.target.files]; e.target.value = ''; sprintFiles(f); });
 
   // ---------- bulk import (PDF / CSV / paste) ----------
   let importRows = [];
