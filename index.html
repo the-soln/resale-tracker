@@ -245,6 +245,7 @@
     </div>
   </header>
 
+  <div class="install-bar" id="inboxBar"><span id="inboxMsg"></span><button class="btn primary sm" id="inboxApply">Apply</button><button class="btn ghost sm" id="inboxLater">Later</button></div>
   <div class="install-bar" id="installBar"><span id="installMsg">Install this app on your phone for a full-screen experience and offline use.</span><button class="btn primary sm" id="installBtn">Install app</button><button class="btn ghost sm" id="installDismiss">✕</button></div>
 
   <div class="tiles" id="tiles"></div>
@@ -313,6 +314,7 @@
       <button class="btn" data-more="exportCsvBtn">Export CSV</button>
       <button class="btn" data-more="backupBtn">Backup to file</button>
       <button class="btn" data-more="restoreBtn">Restore from file</button>
+      <button class="btn" data-more="inboxCheckBtn">Check for updates</button>
       <button class="btn" data-more="settingsBtn">Settings</button>
       <a class="btn" href="budget/" style="text-align:center;text-decoration:none">Open Budget app</a>
       <button class="btn" data-close>Close</button>
@@ -524,6 +526,7 @@
       <div class="field"><label>Default platform fee %</label><input name="feePct" type="number" min="0" max="100" step="0.1" inputmode="decimal"></div>
       <div class="field"><label>Currency symbol</label><input name="currency" maxlength="4"></div>
       <div class="field check full"><input type="checkbox" name="onlineLookup" id="onlineLookupChk"><label for="onlineLookupChk">Look up scanned barcodes online</label></div>
+      <div class="field full"><label>Update inbox passphrase</label><input name="inboxKey" type="password" autocomplete="off" placeholder="from the passphrase file"><div class="hint">Lets the app pull inventory updates that were posted for you. Updates are encrypted with this phrase; leave blank to turn it off.</div></div>
     </div>
     <fieldset style="margin-top:12px">
       <legend>Google lookup (optional, best results)</legend>
@@ -555,7 +558,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.6.2';
+  const VERSION = '2.7';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -1365,10 +1368,10 @@
 
   // ---------- settings ----------
   const settingsModal = $('#settingsModal'), settingsForm = $('#settingsForm');
-  $('#settingsBtn').onclick = () => { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; f.googleKey.value = state.settings.googleKey || ''; f.googleCx.value = state.settings.googleCx || ''; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; openModal('settingsModal'); };
+  $('#settingsBtn').onclick = () => { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; f.googleKey.value = state.settings.googleKey || ''; f.googleCx.value = state.settings.googleCx || ''; f.inboxKey.value = state.settings.inboxKey || ''; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; openModal('settingsModal'); };
   settingsForm.addEventListener('submit', e => {
     e.preventDefault(); const f = settingsForm.elements;
-    state.settings.feePct = num(f.feePct.value); state.settings.currency = f.currency.value || '$'; state.settings.onlineLookup = f.onlineLookup.checked; state.settings.googleKey = f.googleKey.value.trim(); state.settings.googleCx = f.googleCx.value.trim();
+    state.settings.feePct = num(f.feePct.value); state.settings.currency = f.currency.value || '$'; state.settings.onlineLookup = f.onlineLookup.checked; state.settings.googleKey = f.googleKey.value.trim(); state.settings.googleCx = f.googleCx.value.trim(); const prevKey = state.settings.inboxKey; state.settings.inboxKey = f.inboxKey.value.trim(); if (state.settings.inboxKey && state.settings.inboxKey !== prevKey) setTimeout(() => checkInbox(true), 300);
     save(); render(); closeModals(); toast('Settings saved');
   });
   $('#wipeBtn').onclick = () => { if (confirm('Delete ALL items and cards? Make a backup first if you want to keep them.') && confirm('Really delete everything?')) { state.items = []; state.accounts = []; idb.keys().then(ks => ks.forEach(k => idb.del(k))); save(); render(); closeModals(); toast('All data deleted'); } };
@@ -1380,24 +1383,53 @@
     download(`resale-backup-${today()}.json`, JSON.stringify(Object.assign({}, state, { photos }), null, 1), 'application/json');
   };
   $('#restoreBtn').onclick = () => $('#restoreFile').click();
+  async function applyBackup(s, forceMode) {
+    if (!s || !Array.isArray(s.items)) throw new Error('not a backup file');
+    const mode = forceMode || (s.merge === true ? 'merge' : state.items.length ? (confirm(`Backup has ${s.items.length} items. OK = replace your current ${state.items.length} items. Cancel = merge (add new, update matching).`) ? 'replace' : 'merge') : 'replace');
+    if (mode === 'replace') { const { photos, ...rest } = s; if (!rest.settings) rest.settings = state.settings; if (!Array.isArray(rest.accounts)) rest.accounts = state.accounts; state = withDefaults(rest); }
+    else {
+      if (Array.isArray(s.deleteIds) && s.deleteIds.length) { const del = new Set(s.deleteIds); for (const it of state.items) if (del.has(it.id)) for (const p of it.photos) idb.del(p.id); state.items = state.items.filter(i => !del.has(i.id)); }
+      const upd = Array.isArray(s.updateFields) ? s.updateFields : null;
+      const byId = Object.fromEntries(state.items.map(i => [i.id, i])); for (const it of s.items.map(normalize)) { if (byId[it.id]) { if (upd) { for (const k of upd) if (k in it) byId[it.id][k] = it[k]; } else Object.assign(byId[it.id], it); } else state.items.push(it); }
+      const aById = Object.fromEntries(state.accounts.map(a => [a.id, a])); for (const a of (s.accounts || []).map(normalizeAcct)) { if (aById[a.id]) Object.assign(aById[a.id], a); else state.accounts.push(a); }
+    }
+    if (s.photos) for (const id in s.photos) { try { await idb.put(id, b64ToBlob(s.photos[id])); } catch (e2) {} }
+    save(); return mode;
+  }
   $('#restoreFile').addEventListener('change', async e => {
     const file = e.target.files[0]; if (!file) return;
-    try {
-      const s = JSON.parse(await file.text());
-      if (!s || !Array.isArray(s.items)) throw new Error('not a backup file');
-      const mode = s.merge === true ? 'merge' : state.items.length ? (confirm(`Backup has ${s.items.length} items. OK = replace your current ${state.items.length} items. Cancel = merge (add new, update matching).`) ? 'replace' : 'merge') : 'replace';
-      if (mode === 'replace') { const { photos, ...rest } = s; if (!rest.settings) rest.settings = state.settings; if (!Array.isArray(rest.accounts)) rest.accounts = state.accounts; state = withDefaults(rest); }
-      else {
-        if (Array.isArray(s.deleteIds) && s.deleteIds.length) { const del = new Set(s.deleteIds); for (const it of state.items) if (del.has(it.id)) for (const p of it.photos) idb.del(p.id); state.items = state.items.filter(i => !del.has(i.id)); }
-        const upd = Array.isArray(s.updateFields) ? s.updateFields : null;
-        const byId = Object.fromEntries(state.items.map(i => [i.id, i])); for (const it of s.items.map(normalize)) { if (byId[it.id]) { if (upd) { for (const k of upd) if (k in it) byId[it.id][k] = it[k]; } else Object.assign(byId[it.id], it); } else state.items.push(it); }
-        const aById = Object.fromEntries(state.accounts.map(a => [a.id, a])); for (const a of (s.accounts || []).map(normalizeAcct)) { if (aById[a.id]) Object.assign(aById[a.id], a); else state.accounts.push(a); }
-      }
-      if (s.photos) for (const id in s.photos) { try { await idb.put(id, b64ToBlob(s.photos[id])); } catch (e2) {} }
-      save(); render(); toast(`Restored ${s.items.length} items (${mode})`);
-    } catch (err) { alert('Could not restore: ' + err.message); }
+    try { const s = JSON.parse(await file.text()); const mode = await applyBackup(s); render(); toast(`Restored ${s.items.length} items (${mode})`); }
+    catch (err) { alert('Could not restore: ' + err.message); }
     e.target.value = '';
   });
+
+  // ---------- update inbox (encrypted updates posted to the app's own site) ----------
+  const b64d = b => Uint8Array.from(atob(b), c => c.charCodeAt(0));
+  async function inboxKey(pass, salt) { const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(pass), 'PBKDF2', false, ['deriveKey']); return crypto.subtle.deriveKey({ name: 'PBKDF2', salt, iterations: 200000, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']); }
+  let inboxEnv = null;
+  async function checkInbox(manual) {
+    const pass = state.settings.inboxKey; if (!pass) { if (manual) toast('Set the inbox passphrase in Settings first'); return; }
+    if (!location.protocol.startsWith('http')) { if (manual) toast('Updates only work from the installed app or website'); return; }
+    try {
+      const r = await fetch('inbox/latest.enc?t=' + Date.now(), { cache: 'no-store' }); if (!r.ok) { if (manual) toast('No update posted yet'); return; }
+      const env = await r.json();
+      if (env.stamp === state.settings.inboxApplied) { if (manual) toast('Already applied: ' + env.summary); return; }
+      if (!manual && env.stamp === state.settings.inboxDismissed) return;
+      inboxEnv = env; $('#inboxMsg').innerHTML = `<b>Update ready:</b> ${esc(env.summary)}`; $('#inboxBar').classList.add('show');
+    } catch (e) { if (manual) toast('Could not check for updates: ' + e.message); }
+  }
+  $('#inboxLater').onclick = () => { if (inboxEnv) state.settings.inboxDismissed = inboxEnv.stamp; save(); $('#inboxBar').classList.remove('show'); };
+  $('#inboxApply').onclick = async () => {
+    const env = inboxEnv; if (!env) return; $('#inboxApply').disabled = true; $('#inboxMsg').textContent = 'Applying…';
+    try {
+      const key = await inboxKey(state.settings.inboxKey, b64d(env.salt));
+      const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64d(env.iv) }, key, b64d(env.ct)));
+      const payload = JSON.parse(plain); const steps = Array.isArray(payload.steps) ? payload.steps : [payload];
+      let n = 0; for (const st of steps) { await applyBackup(st, 'merge'); n += st.items.length; }
+      state.settings.inboxApplied = env.stamp; save(); render(); $('#inboxBar').classList.remove('show'); toast(`Applied: ${env.summary}`);
+    } catch (e) { $('#inboxMsg').innerHTML = `<span class="neg-t">Could not apply. ${e.name === 'OperationError' ? 'Wrong passphrase? Check it in Settings.' : esc(e.message)}</span>`; }
+    $('#inboxApply').disabled = false;
+  };
   $('#exportCsvBtn').onclick = () => {
     const names = Object.fromEntries(state.accounts.map(a => [a.id, a.name]));
     const cols = ['name', 'barcode', 'category', 'source', 'platform', 'status', 'purchaseDate', 'qty', 'buyPrice', 'inboundCost', 'unitCost', 'paidWith', 'expectedPrice', 'feePct', 'shipOut', 'qtySold', 'soldPrice', 'soldDate', 'payoutTo', 'invested', 'potential', 'realized', 'roi', 'inStore', 'storePrice', 'condition', 'brand', 'size', 'listingUrl', 'notes'];
@@ -1460,7 +1492,7 @@
   ['#q', '#fStatus', '#fCategory', '#fPlatform'].forEach(s => $(s).addEventListener('input', renderTable));
   $('#clearFilters').onclick = () => { $('#q').value = ''; $('#fStatus').value = ''; $('#fCategory').value = ''; $('#fPlatform').value = ''; renderTable(); };
   $('#moreBtn').onclick = () => openModal('moreModal');
-  $$('[data-more]').forEach(b => b.onclick = () => { const target = b.dataset.more; if (target === 'settingsBtn') { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; f.googleKey.value = state.settings.googleKey || ''; f.googleCx.value = state.settings.googleCx || ''; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; swapModal('moreModal', 'settingsModal'); } else { closeTop(); setTimeout(() => $('#' + target).click(), 50); } });
+  $$('[data-more]').forEach(b => b.onclick = () => { const target = b.dataset.more; if (target === 'inboxCheckBtn') { closeTop(); setTimeout(() => checkInbox(true), 100); return; } if (target === 'settingsBtn') { const f = settingsForm.elements; f.feePct.value = state.settings.feePct; f.currency.value = state.settings.currency; f.onlineLookup.checked = !!state.settings.onlineLookup; f.googleKey.value = state.settings.googleKey || ''; f.googleCx.value = state.settings.googleCx || ''; f.inboxKey.value = state.settings.inboxKey || ''; $('#versionNote').textContent = `Resale Tracker v${VERSION}`; swapModal('moreModal', 'settingsModal'); } else { closeTop(); setTimeout(() => $('#' + target).click(), 50); } });
   $$('[data-close]').forEach(b => b.onclick = () => closeTop());
   $$('.modal').forEach(m => m.addEventListener('mousedown', e => { if (e.target === m) closeTop(); }));
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTop(); if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !modalStack.length) { e.preventDefault(); openItem(null); } });
@@ -1470,6 +1502,7 @@
   try { localStorage.getItem(KEY); } catch (e) { $('#storeNote').textContent = 'storage blocked — use Backup/Restore'; }
   state = load();
   render();
+  setTimeout(() => checkInbox(false), 1500);
 })();
 </script>
 </body>
