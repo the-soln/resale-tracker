@@ -440,6 +440,7 @@
         <div class="field"><label>Listing link (eBay etc, optional)</label><input name="listingUrl" type="url" placeholder="https://"></div>
         <div class="field"><label>Brand</label><input name="brand" list="brandList" placeholder="Nike, Sony…"></div>
         <div class="field"><label>Model #</label><input name="model" placeholder="TW28310, 2697-26…"></div>
+        <div class="field"><label>Retail price (store shows the savings)</label><input name="retail" type="number" min="0" step="0.01" placeholder="e.g. 799" inputmode="decimal"></div>
         <div class="field"><label>Size</label><input name="size" placeholder="10, M, 32x30…"></div>
         <div class="field full"><label>Public description (shown in store)</label><textarea name="storeDesc" placeholder="Worn twice, comes with box. Smoke-free home."></textarea></div>
         <div class="field full"><label>Photos <span style="color:var(--text-3)">(first one is the cover)</span></label>
@@ -635,7 +636,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '3.1';
+  const VERSION = '3.2';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -672,7 +673,7 @@
       qtySold: Math.max(0, Math.round(num(it.qtySold))), soldPrice: num(it.soldPrice), soldDate: it.soldDate || '',
       notes: it.notes || '', createdAt: it.createdAt || Date.now(),
       inStore: !!it.inStore, storePrice: num(it.storePrice), condition: it.condition || '', listingUrl: it.listingUrl || '',
-      brand: it.brand || '', model: it.model || '', size: it.size || '', storeDesc: it.storeDesc || '',
+      brand: it.brand || '', model: it.model || '', retail: num(it.retail), size: it.size || '', storeDesc: it.storeDesc || '',
       photos: Array.isArray(it.photos) && it.photos.length ? it.photos.filter(p => p && p.id).map(p => ({ id: p.id, pub: !!p.pub })) : (num(it.photoVer) > 0 ? [{ id: it.id, pub: num(it.photoPublished) === num(it.photoVer) }] : [])
     };
   }
@@ -753,7 +754,7 @@
   }
   function storeSig() {
     const st = state.settings.store;
-    const rows = state.items.filter(it => it.inStore).map(it => { const c = calc(it); return [it.id, it.name, c.qtyLeft, it.storePrice || it.expectedPrice, it.condition, it.brand, it.model, it.size, it.storeDesc, it.photos.map(p => p.id).join(','), c.qtyLeft === 0 ? it.soldDate : ''].join('|'); });
+    const rows = state.items.filter(it => it.inStore).map(it => { const c = calc(it); return [it.id, it.name, c.qtyLeft, it.storePrice || it.expectedPrice, it.condition, it.brand, it.model, it.retail, it.size, it.storeDesc, it.photos.map(p => p.id).join(','), c.qtyLeft === 0 ? it.soldDate : ''].join('|'); });
     return JSON.stringify([rows, st.name, st.tagline, st.about, st.policies, st.location, st.theme, st.mode, st.email, st.phone, st.instagram, st.bannerId]);
   }
   const storeDirty = () => !!state.settings.store.ghToken && state.settings.store.publishedSig !== storeSig();
@@ -1348,7 +1349,7 @@
       log('Writing catalog…');
       const addedDate = it => it.purchaseDate || new Date(it.createdAt).toISOString().slice(0, 10);
       const catalog = { v: 2, store: { name: st.name, tagline: st.tagline, about: st.about, policies: st.policies, location: st.location, theme: st.theme || 'ocean', mode: st.mode || 'auto', email: st.email, phone: st.phone, instagram: st.instagram, banner: st.bannerId && st.bannerPub ? `img/${st.bannerId}.jpg` : '' }, updated: new Date().toISOString(),
-        items: rows.map(({ it, c }) => ({ id: it.id, name: it.name, price: it.storePrice || it.expectedPrice, category: it.category, condition: it.condition, brand: it.brand, model: it.model, size: it.size, desc: it.storeDesc, qty: c.qtyLeft, url: it.listingUrl, added: addedDate(it), photos: it.photos.filter(p => p.pub).map(p => `img/${p.id}.jpg`) })),
+        items: rows.map(({ it, c }) => ({ id: it.id, name: it.name, price: it.storePrice || it.expectedPrice, category: it.category, condition: it.condition, brand: it.brand, model: it.model, retail: it.retail || 0, size: it.size, desc: it.storeDesc, qty: c.qtyLeft, url: it.listingUrl, added: addedDate(it), photos: it.photos.filter(p => p.pub).map(p => `img/${p.id}.jpg`) })),
         sold: soldRows.map(({ it }) => ({ id: it.id, name: it.name, date: it.soldDate, photo: it.photos.find(p => p.pub) ? `img/${it.photos.find(p => p.pub).id}.jpg` : '' })) };
       await ghPut(`${pre}catalog.json`, utf8ToB64(JSON.stringify(catalog, null, 1)), `Update store (${rows.length} item${rows.length === 1 ? '' : 's'})`);
       st.lastPublished = new Date().toISOString(); st.publishedSig = storeSig(); save(); renderStore(); renderHome(); renderTabs();
@@ -1563,7 +1564,7 @@
   };
   $('#exportCsvBtn').onclick = () => {
     const names = Object.fromEntries(state.accounts.map(a => [a.id, a.name]));
-    const cols = ['name', 'barcode', 'category', 'source', 'platform', 'status', 'purchaseDate', 'qty', 'buyPrice', 'inboundCost', 'unitCost', 'paidWith', 'expectedPrice', 'feePct', 'shipOut', 'qtySold', 'soldPrice', 'soldDate', 'payoutTo', 'invested', 'potential', 'realized', 'roi', 'inStore', 'storePrice', 'condition', 'brand', 'model', 'size', 'listingUrl', 'notes'];
+    const cols = ['name', 'barcode', 'category', 'source', 'platform', 'status', 'purchaseDate', 'qty', 'buyPrice', 'inboundCost', 'unitCost', 'paidWith', 'expectedPrice', 'feePct', 'shipOut', 'qtySold', 'soldPrice', 'soldDate', 'payoutTo', 'invested', 'potential', 'realized', 'roi', 'inStore', 'storePrice', 'condition', 'brand', 'model', 'retail', 'size', 'listingUrl', 'notes'];
     const lines = [cols.join(',')];
     for (const it of state.items) {
       const c = calc(it);
