@@ -4,11 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Resale Tracker</title>
-<meta name="theme-color" content="#2a78d6">
+<meta name="theme-color" content="#0f1115">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Resale">
+<meta name="apple-mobile-web-app-title" content="The Soln">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -17,7 +17,7 @@
     color-scheme: light;
     --bg: #f4f4f1; --surface: #fcfcfb; --surface-2: #f0efec; --border: #e2e1dc;
     --text: #0b0b0b; --text-2: #52514e; --text-3: #8a8985;
-    --accent: #2a78d6; --accent-ink: #ffffff;
+    --accent: #f97316; --accent-ink: #111111; --ink: #0f1115; --ink-2: #1b1f27;
     --pos: #2a78d6; --neg: #e34948; --grid: #e6e5e0;
     --good-bg: #e3f5ec; --good-fg: #0f6b3f;
     --warn-bg: #fdf0d5; --warn-fg: #8a5a00;
@@ -30,7 +30,7 @@
       color-scheme: dark;
       --bg: #121211; --surface: #1a1a19; --surface-2: #242423; --border: #33332f;
       --text: #ffffff; --text-2: #c3c2b7; --text-3: #8a8985;
-      --accent: #3987e5; --accent-ink: #ffffff;
+      --accent: #f97316; --accent-ink: #111111; --ink: #0b0d11; --ink-2: #171a21;
       --pos: #3987e5; --neg: #e66767; --grid: #2c2c2a;
       --good-bg: #123526; --good-fg: #6fd39f;
       --warn-bg: #3a2a08; --warn-fg: #f0c060;
@@ -43,7 +43,7 @@
   html { -webkit-text-size-adjust: 100%; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding-bottom: env(safe-area-inset-bottom); }
   button, input, select, textarea { font: inherit; color: inherit; }
-  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 20px 60px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 16px 20px 60px; }
 
   header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
   header h1 { font-size: 20px; margin: 0; letter-spacing: -.01em; }
@@ -207,8 +207,61 @@
   .install-bar.show { display: flex; }
   .install-bar .btn { margin-left: auto; }
 
+  /* ---- v3 shell: top bar, tabs, home ---- */
+  .topbar { background: var(--ink); color: #fff; border-bottom: 3px solid var(--accent); position: sticky; top: 0; z-index: 8; }
+  .topbar .in { max-width: 1240px; margin: 0 auto; padding: 0 20px; height: 58px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  .brand { display: flex; align-items: baseline; gap: 8px; }
+  .brand .nm { font-weight: 800; font-size: 22px; letter-spacing: .05em; text-transform: uppercase; }
+  .brand .nm b { color: var(--accent); }
+  .brand .sub { font-size: 11px; color: #aeb4c2; letter-spacing: .08em; text-transform: uppercase; }
+  .tabs { display: flex; gap: 2px; }
+  .tabs button { border: 0; background: transparent; color: #c9cedb; padding: 8px 14px; border-radius: 8px; cursor: pointer; font-weight: 600; }
+  .tabs button.on { background: var(--ink-2); color: #fff; box-shadow: inset 0 -2px 0 var(--accent); }
+  .tabs button:hover { color: #fff; }
+  .topbar .btn.more { background: var(--ink-2); color: #fff; border-color: transparent; }
+  .tabpane[hidden] { display: none !important; }
+  .bottom-nav { display: none; }
+  .quick { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 14px 0; }
+  .quick button { border: 1px solid var(--border); background: var(--surface); border-radius: 14px; padding: 12px 6px 10px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 4px; font-weight: 600; font-size: 13px; box-shadow: var(--shadow-sm, 0 2px 8px rgba(0,0,0,.05)); }
+  .quick button .i { font-size: 24px; line-height: 1; }
+  .quick button.primary { background: var(--accent); color: var(--accent-ink); border-color: transparent; }
+  .quick button.dark { background: var(--ink); color: #fff; border-color: transparent; }
+  .quick button .badge-n { position: absolute; }
+  .quick button { position: relative; }
+  .quick .dot { position: absolute; top: 8px; right: 10px; width: 9px; height: 9px; border-radius: 50%; background: var(--neg); border: 2px solid var(--surface); }
+  .hero-num { background: var(--ink); color: #fff; border-radius: 16px; padding: 16px 18px 14px; margin-bottom: 12px; position: relative; overflow: hidden; }
+  .hero-num::after { content: ""; position: absolute; right: -50px; top: -60px; width: 200px; height: 200px; border-radius: 50%; background: rgba(249,115,22,.14); }
+  .hero-num .lbl { font-size: 12px; color: #aeb4c2; letter-spacing: .06em; text-transform: uppercase; }
+  .hero-num .big { font-size: 36px; font-weight: 800; letter-spacing: -.02em; margin: 2px 0 10px; font-variant-numeric: tabular-nums; color: var(--accent); }
+  .hero-num .row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; position: relative; }
+  .hero-num .mini { background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1); border-radius: 10px; padding: 8px 10px; }
+  .hero-num .mini .l { font-size: 11px; color: #aeb4c2; } .hero-num .mini .v { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 15px; }
+  .attn .row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .attn .row:last-child { border-bottom: 0; }
+  .attn .row .ic { width: 34px; height: 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex: none; background: var(--surface-2); font-size: 17px; }
+  .attn .row .ic.warn { background: var(--warn-bg); } .attn .row .ic.ok { background: var(--good-bg); }
+  .attn .row .t { flex: 1; min-width: 0; } .attn .row .t b { display: block; font-size: 14px; } .attn .row .t small { color: var(--text-3); font-size: 12px; }
+  .attn .row .go { color: var(--text-3); }
+  .sale-row { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .sale-row:last-child { border-bottom: 0; }
+  .sale-row .t { flex: 1; min-width: 0; } .sale-row .t b { display: block; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .sale-row .t small { color: var(--text-3); font-size: 12px; }
+  .sale-row .p { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .pub-status { display: flex; align-items: center; gap: 8px; font-weight: 600; margin: 4px 0 8px; }
+  .pub-status .d { width: 10px; height: 10px; border-radius: 50%; background: var(--good-fg); } .pub-status .d.dirty { background: var(--accent); }
+  .pick-list .item-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .pick-list .item-row:last-child { border-bottom: 0; }
+  .pick-list .item-row .t { flex: 1; min-width: 0; } .pick-list .item-row .t b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .pick-list .item-row .t small { color: var(--text-3); font-size: 12px; }
+
   @media (max-width: 720px) {
-    .wrap { padding: 12px 12px 40px; }
+    .wrap { padding: 12px 12px calc(84px + env(safe-area-inset-bottom)); }
+    .topbar .in { padding: 0 14px; height: 54px; } .brand .nm { font-size: 20px; } .brand .sub { display: none; } .tabs { display: none; }
+    .bottom-nav { display: flex; position: fixed; left: 0; right: 0; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); z-index: 7; }
+    .bottom-nav button { flex: 1; border: 0; background: transparent; color: var(--text-3); font-size: 11px; padding: 4px 0; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; position: relative; }
+    .bottom-nav button .i { font-size: 20px; line-height: 1; }
+    .bottom-nav button.on { color: var(--accent); font-weight: 700; }
+    .bottom-nav button .dot { position: absolute; top: 2px; right: calc(50% - 16px); width: 8px; height: 8px; border-radius: 50%; background: var(--neg); }
+    .quick button { padding: 10px 4px 8px; font-size: 12px; } .quick button .i { font-size: 22px; }
+    .hero-num .big { font-size: 30px; }
     header { margin-bottom: 12px; }
     header h1 small { display: none; }
     .toolbar { width: 100%; }
@@ -229,44 +282,56 @@
 </style>
 </head>
 <body>
+<div class="topbar"><div class="in">
+  <div class="brand"><span class="nm">The <b>Soln</b></span><span class="sub">Back office</span></div>
+  <nav class="tabs" id="tabsTop"></nav>
+  <button class="btn more" id="moreBtn">More ▾</button>
+  <span hidden><button id="importBtn"></button><button id="exportCsvBtn"></button><button id="backupBtn"></button><button id="restoreBtn"></button><button id="settingsBtn"></button><span id="storeNote"></span></span>
+  <input type="file" id="restoreFile" accept="application/json" hidden>
+</div></div>
 <div class="wrap">
-  <header>
-    <h1>Resale Tracker <small id="storeNote">saved on this device</small></h1>
-    <div class="toolbar">
-      <button class="btn primary" id="scanBtn">📷 Scan</button>
-      <button class="btn primary" id="addBtn">+ Add item</button>
-      <button class="btn mobile-only" id="moreBtn">More ▾</button>
-      <button class="btn desktop-only" id="importBtn">Import</button>
-      <button class="btn desktop-only" id="exportCsvBtn">Export CSV</button>
-      <button class="btn desktop-only" id="backupBtn">Backup</button>
-      <button class="btn desktop-only" id="restoreBtn">Restore</button>
-      <button class="btn desktop-only" id="settingsBtn">Settings</button>
-      <input type="file" id="restoreFile" accept="application/json" hidden>
-    </div>
-  </header>
 
   <div class="install-bar" id="inboxBar"><span id="inboxMsg"></span><button class="btn primary sm" id="inboxApply">Apply</button><button class="btn ghost sm" id="inboxLater">Later</button></div>
   <div class="install-bar" id="installBar"><span id="installMsg">Install this app on your phone for a full-screen experience and offline use.</span><button class="btn primary sm" id="installBtn">Install app</button><button class="btn ghost sm" id="installDismiss">✕</button></div>
 
-  <div class="tiles" id="tiles"></div>
+  <section class="tabpane" data-tab="home">
+    <div class="quick">
+      <button type="button" id="scanBtn"><span class="i">📷</span>Scan</button>
+      <button type="button" id="addBtn"><span class="i">＋</span>Add</button>
+      <button type="button" class="primary" id="soldQuickBtn"><span class="i">💵</span>Sold</button>
+      <button type="button" class="dark" id="publishQuickBtn"><span class="i">🚀</span>Publish<span class="dot" id="publishDot" hidden></span></button>
+    </div>
+    <div class="hero-num" id="homeHero"></div>
+    <div class="tiles" id="tiles"></div>
+    <div class="panel attn"><h2>Needs attention</h2><div id="attn"></div></div>
+    <div class="panel"><h2>Recent sales <span>latest first</span></h2><div id="recentSales"></div></div>
+  </section>
 
+  <section class="tabpane" data-tab="funds">
   <div class="panel">
     <h2>Funds <span>cards and cash you buy inventory with</span><button class="btn sm" id="addAcctBtn">+ Add card</button></h2>
     <div class="accts" id="accts"></div>
   </div>
+  </section>
 
+  <section class="tabpane" data-tab="store">
   <div class="panel" id="storePanel">
-    <h2>Storefront <span>a public page of what you have for sale</span><button class="btn sm" id="storeSettingsBtn">Store settings</button></h2>
+    <h2>thes0ln.com <span>your public store</span><button class="btn sm" id="storeSettingsBtn">Store settings</button></h2>
+    <div class="pub-status" id="pubStatus"></div>
     <div class="hint" id="storeInfo" style="margin:0"></div>
     <div class="store-actions"><button type="button" class="btn primary" id="publishBtn">Publish store</button><button type="button" class="btn" id="sprintBtn">📷 Add photos</button><a class="btn" id="previewStoreBtn" href="shop/" target="_blank" rel="noopener">Open store page</a></div>
     <div class="hint" id="publishLog"></div>
   </div>
+  </section>
 
+  <section class="tabpane" data-tab="home">
   <div class="panel">
     <h2>Realized profit by month <span>after fees and shipping, last 12 months</span></h2>
     <div class="chart-wrap" id="chart"><div class="tip" id="chartTip"></div></div>
   </div>
+  </section>
 
+  <section class="tabpane" data-tab="items">
   <div class="panel">
     <div class="filters">
       <input type="search" id="q" placeholder="Search name, barcode, category, platform…">
@@ -302,6 +367,17 @@
       </table>
     </div>
     <div class="cards" id="cards"></div>
+  </div>
+  </section>
+</div>
+<nav class="bottom-nav" id="tabsBottom"></nav>
+
+<!-- Sold: pick an item -->
+<div class="modal" id="soldPickModal">
+  <div class="dialog" style="max-width:520px">
+    <h3>What sold? <button type="button" class="x" data-close aria-label="Close">✕</button></h3>
+    <div class="field"><input type="search" id="soldPickQ" placeholder="Type a name, size or barcode…"></div>
+    <div class="pick-list" id="soldPickList" style="margin-top:8px"></div>
   </div>
 </div>
 
@@ -558,7 +634,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.7';
+  const VERSION = '3.0';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -659,10 +735,61 @@
   const KIND = { credit: 'credit card', debit: 'debit / bank', cash: 'cash', payout: 'payout account' };
   const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
+  // ---------- tabs ----------
+  const TABS = [['home', 'Home', '🏠'], ['items', 'Items', '📦'], ['store', 'Store', '🛒'], ['funds', 'Funds', '💳']];
+  let tab = (() => { try { return localStorage.getItem('rt.tab') || 'home'; } catch (e) { return 'home'; } })();
+  function setTab(t) { tab = TABS.some(x => x[0] === t) ? t : 'home'; try { localStorage.setItem('rt.tab', tab); } catch (e) {} $$('.tabpane').forEach(p => p.hidden = p.dataset.tab !== tab); renderTabs(); if (tab === 'home') renderChart(); }
+  function renderTabs() {
+    const dirty = storeDirty();
+    $('#tabsTop').innerHTML = TABS.map(([k, l]) => `<button data-tab-btn="${k}" class="${tab === k ? 'on' : ''}">${l}</button>`).join('');
+    $('#tabsBottom').innerHTML = TABS.map(([k, l, i]) => `<button data-tab-btn="${k}" class="${tab === k ? 'on' : ''}"><span class="i">${i}</span>${l}${k === 'store' && dirty ? '<span class="dot"></span>' : ''}</button>`).join('') + `<button data-tab-btn="more"><span class="i">⋯</span>More</button>`;
+  }
+  document.addEventListener('click', e => { const b = e.target.closest('[data-tab-btn]'); if (!b) return; if (b.dataset.tabBtn === 'more') { openModal('moreModal'); return; } setTab(b.dataset.tabBtn); window.scrollTo(0, 0); });
+
   // ---------- render ----------
   function render() {
-    renderTiles(); renderAccts(); renderStore(); renderChart(); renderFilterOptions(); renderTable(); renderDatalists();
+    renderTiles(); renderHome(); renderAccts(); renderStore(); renderChart(); renderFilterOptions(); renderTable(); renderDatalists(); setTab(tab);
   }
+  function storeSig() {
+    const st = state.settings.store;
+    const rows = state.items.filter(it => it.inStore).map(it => { const c = calc(it); return [it.id, it.name, c.qtyLeft, it.storePrice || it.expectedPrice, it.condition, it.brand, it.size, it.storeDesc, it.photos.map(p => p.id).join(','), c.qtyLeft === 0 ? it.soldDate : ''].join('|'); });
+    return JSON.stringify([rows, st.name, st.tagline, st.about, st.policies, st.location, st.theme, st.mode, st.email, st.phone, st.instagram, st.bannerId]);
+  }
+  const storeDirty = () => !!state.settings.store.ghToken && state.settings.store.publishedSig !== storeSig();
+  function renderHome() {
+    const t = { realized: 0, potential: 0, invested: 0, unitsLeft: 0, unitsSold: 0, month: 0, monthUnits: 0, revenue: 0 };
+    const ym = new Date().toISOString().slice(0, 7);
+    for (const it of state.items) { const c = calc(it); t.realized += c.realized; t.potential += c.potential; t.invested += c.invested; t.unitsLeft += c.qtyLeft; t.unitsSold += c.qtySold; t.revenue += c.revenue; if (c.qtySold && it.soldDate && it.soldDate.slice(0, 7) === ym) { t.month += c.realized; t.monthUnits += c.qtySold; } }
+    $('#homeHero').innerHTML = `<div class="lbl">Realized profit, all time</div><div class="big">${fmt(t.realized)}</div><div class="row"><div class="mini"><div class="l">This month</div><div class="v">${fmt0(t.month)}</div></div><div class="mini"><div class="l">Still to make</div><div class="v">${fmt0(t.potential)}</div></div><div class="mini"><div class="l">Tied up</div><div class="v">${fmt0(t.invested)}</div></div></div>`;
+    const rows = [];
+    const dirty = storeDirty(); $('#publishDot').hidden = !dirty;
+    if (!state.settings.store.ghToken) rows.push(['🛒', 'warn', 'Store not connected', 'Add your GitHub token in Store settings to publish', () => { setTab('store'); openStoreSettings(); }]);
+    else if (dirty) rows.push(['🚀', 'warn', 'Changes not on the store yet', 'Sales, edits or photos since the last publish', () => { setTab('store'); publishStore(); }]);
+    else rows.push(['✅', 'ok', 'thes0ln.com is up to date', state.settings.store.lastPublished ? 'Published ' + new Date(state.settings.store.lastPublished).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '', () => setTab('store')]);
+    const noPhoto = state.items.filter(it => it.inStore && calc(it).qtyLeft > 0 && !it.photos.length).length;
+    if (noPhoto) rows.push(['📷', 'warn', `${noPhoto} store item${noPhoto === 1 ? '' : 's'} without a photo`, 'Items with photos sell faster', () => { setTab('store'); openSprint(); }]);
+    const noPrice = state.items.filter(it => calc(it).qtyLeft > 0 && !it.expectedPrice).length;
+    if (noPrice) rows.push(['🏷️', '', `${noPrice} item${noPrice === 1 ? '' : 's'} with no expected price`, 'Profit can\'t be estimated for them', () => { setTab('items'); $('#q').value = ''; $('#fStatus').value = 'unsold'; renderTable(); }]);
+    const notInStore = state.items.filter(it => calc(it).qtyLeft > 0 && !it.inStore).length;
+    if (notInStore) rows.push(['🛍️', '', `${notInStore} in-stock item${notInStore === 1 ? '' : 's'} not listed on the store`, 'Open an item and tick "Show in my store"', () => { setTab('items'); $('#fStatus').value = 'unsold'; renderTable(); }]);
+    $('#attn').innerHTML = rows.map((r, i) => `<div class="row" data-attn="${i}"><div class="ic ${r[1]}">${r[0]}</div><div class="t"><b>${esc(r[2])}</b><small>${esc(r[3])}</small></div><span class="go">›</span></div>`).join('');
+    $$('#attn [data-attn]').forEach(el => el.onclick = () => rows[+el.dataset.attn][4]());
+    const sales = state.items.filter(it => it.qtySold > 0).map(it => ({ it, c: calc(it) })).sort((a, b) => (b.it.soldDate || '').localeCompare(a.it.soldDate || '') || b.it.createdAt - a.it.createdAt).slice(0, 8);
+    $('#recentSales').innerHTML = sales.length ? sales.map(({ it, c }) => `<div class="sale-row"><div class="t"><b>${esc(it.name)}</b><small>${c.qtySold} sold${it.soldDate ? ' · ' + fmtDate(it.soldDate) : ''}${it.platform ? ' · ' + esc(it.platform) : ''}</small></div><div class="p ${signCls(c.realized)}">${fmt(c.realized)}</div></div>`).join('') : '<div class="hint" style="margin:0">No sales yet. Tap <b>Sold</b> when something goes.</div>';
+  }
+  const fmt0 = n => { const c = state.settings.currency; return (n < -0.5 ? '−' : '') + c + Math.round(Math.abs(n)).toLocaleString(); };
+  // ---------- sold: pick an item ----------
+  function openSoldPick() { $('#soldPickQ').value = ''; renderSoldPick(); openModal('soldPickModal'); setTimeout(() => $('#soldPickQ').focus(), 80); }
+  function renderSoldPick() {
+    const q = $('#soldPickQ').value.trim().toLowerCase();
+    const rows = state.items.map(it => ({ it, c: calc(it) })).filter(({ it, c }) => c.qtyLeft > 0 && (!q || `${it.name} ${it.size} ${it.brand} ${it.barcode} ${it.category}`.toLowerCase().includes(q))).sort((a, b) => b.it.createdAt - a.it.createdAt).slice(0, 40);
+    $('#soldPickList').innerHTML = rows.length ? rows.map(({ it, c }) => `<div class="item-row" data-pick="${it.id}">${it.photos.length ? `<img class="thumb" data-photo="${it.photos[0].id}" alt="">` : '<div class="thumb"></div>'}<div class="t"><b>${esc(it.name)}</b><small>${[it.size, `${c.qtyLeft} left`, `cost ${fmt(c.unitCost)}`, it.expectedPrice ? `asking ${fmt(it.expectedPrice)}` : ''].filter(Boolean).map(esc).join(' · ')}</small></div><span class="go">›</span></div>`).join('') : '<div class="empty">Nothing in stock matches.</div>';
+    loadThumbs($('#soldPickList'));
+  }
+  $('#soldPickQ').addEventListener('input', renderSoldPick);
+  $('#soldPickList').addEventListener('click', e => { const r = e.target.closest('[data-pick]'); if (!r) return; const it = state.items.find(i => i.id === r.dataset.pick); if (it) openSale(it); });
+  $('#soldQuickBtn').onclick = openSoldPick;
+  $('#publishQuickBtn').onclick = () => { setTab('store'); window.scrollTo(0, 0); publishStore(); };
 
   function renderTiles() {
     const t = { invested: 0, potential: 0, realized: 0, revenue: 0, costSold: 0, unitsLeft: 0, unitsSold: 0, itemsLeft: 0 };
@@ -1058,7 +1185,7 @@
     acctOptions(f.payoutTo, lastPayout);
     $('#saleItemName').textContent = it.name;
     $('#saleItemMeta').textContent = `${c.qtyLeft} unit${c.qtyLeft === 1 ? '' : 's'} left · cost ${fmt(c.unitCost)}/unit`;
-    updateSalePreview(); openModal('saleModal');
+    updateSalePreview(); if (modalStack[modalStack.length - 1] === 'soldPickModal') swapModal('soldPickModal', 'saleModal'); else openModal('saleModal');
     setTimeout(() => f.price.select(), 50);
   }
   function updateSalePreview() {
@@ -1154,6 +1281,9 @@
     if (!st.ghToken) parts.push('not set up yet: add your GitHub token in Store settings');
     $('#storeInfo').textContent = parts.join(' · ');
     $('#previewStoreBtn').href = storeUrl();
+    const dirty = storeDirty();
+    $('#pubStatus').innerHTML = !st.ghToken ? '' : dirty ? `<span class="d dirty"></span>Changes not published yet` : `<span class="d"></span>Store is up to date`;
+    $('#publishBtn').classList.toggle('primary', !st.ghToken || dirty);
   }
   const storeModal = $('#storeModal'), storeForm = $('#storeForm');
   let bannerBlob = null, bannerRemove = false;
@@ -1220,7 +1350,7 @@
         items: rows.map(({ it, c }) => ({ id: it.id, name: it.name, price: it.storePrice || it.expectedPrice, category: it.category, condition: it.condition, brand: it.brand, size: it.size, desc: it.storeDesc, qty: c.qtyLeft, url: it.listingUrl, added: addedDate(it), photos: it.photos.filter(p => p.pub).map(p => `img/${p.id}.jpg`) })),
         sold: soldRows.map(({ it }) => ({ id: it.id, name: it.name, date: it.soldDate, photo: it.photos.find(p => p.pub) ? `img/${it.photos.find(p => p.pub).id}.jpg` : '' })) };
       await ghPut(`${pre}catalog.json`, utf8ToB64(JSON.stringify(catalog, null, 1)), `Update store (${rows.length} item${rows.length === 1 ? '' : 's'})`);
-      st.lastPublished = new Date().toISOString(); save(); renderStore();
+      st.lastPublished = new Date().toISOString(); st.publishedSig = storeSig(); save(); renderStore(); renderHome(); renderTabs();
       log(`Published ${rows.length} item${rows.length === 1 ? '' : 's'}${n ? ` and ${n} photo${n === 1 ? '' : 's'}` : ''}. GitHub is rebuilding the site; it goes live in about a minute at <a href="${esc(storeUrl())}" target="_blank" rel="noopener">${esc(storeUrl())}</a>.`);
       toast('Store published');
     } catch (err) { log(`<span class="neg-t">Publish failed: ${esc(err.message)}</span>. Check the repository name and token in Store settings.`); }
