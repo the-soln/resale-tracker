@@ -555,7 +555,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.6';
+  const VERSION = '2.6.1';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -1388,7 +1388,8 @@
       const mode = s.merge === true ? 'merge' : state.items.length ? (confirm(`Backup has ${s.items.length} items. OK = replace your current ${state.items.length} items. Cancel = merge (add new, update matching).`) ? 'replace' : 'merge') : 'replace';
       if (mode === 'replace') { const { photos, ...rest } = s; if (!rest.settings) rest.settings = state.settings; if (!Array.isArray(rest.accounts)) rest.accounts = state.accounts; state = withDefaults(rest); }
       else {
-        const byId = Object.fromEntries(state.items.map(i => [i.id, i])); for (const it of s.items.map(normalize)) { if (byId[it.id]) Object.assign(byId[it.id], it); else state.items.push(it); }
+        const upd = Array.isArray(s.updateFields) ? s.updateFields : null;
+        const byId = Object.fromEntries(state.items.map(i => [i.id, i])); for (const it of s.items.map(normalize)) { if (byId[it.id]) { if (upd) { for (const k of upd) if (k in it) byId[it.id][k] = it[k]; } else Object.assign(byId[it.id], it); } else state.items.push(it); }
         const aById = Object.fromEntries(state.accounts.map(a => [a.id, a])); for (const a of (s.accounts || []).map(normalizeAcct)) { if (aById[a.id]) Object.assign(aById[a.id], a); else state.accounts.push(a); }
       }
       if (s.photos) for (const id in s.photos) { try { await idb.put(id, b64ToBlob(s.photos[id])); } catch (e2) {} }
