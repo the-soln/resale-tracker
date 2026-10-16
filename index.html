@@ -504,6 +504,8 @@
       <div class="field"><label>Paid with (all items)</label><select id="importPaidWith"><option value="">— not tracked —</option></select></div>
       <div class="field"><label>Bought from (all items)</label><input id="importSource" list="srcList" placeholder="Wholesale Co, Goodwill…"></div>
       <div class="field"><label>Category (if not in the file)</label><input id="importCategory" list="catList"></div>
+      <div class="field"><label>Sales tax % to add as extra cost</label><input id="importTax" type="number" min="0" max="30" step="0.01" inputmode="decimal" placeholder="e.g. 6 for PA"></div>
+      <div class="field check" style="padding-top:22px"><input type="checkbox" id="importCombine" checked><label for="importCombine">Combine the same SKU across receipts</label></div>
     </div>
     <div class="store-actions"><button type="button" class="btn" id="importParseBtn">Preview</button><span class="hint" id="importStatus" style="margin:0;align-self:center"></span></div>
     <div class="imp-wrap" id="importPreview"></div>
@@ -553,7 +555,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '2.5';
+  const VERSION = '2.6';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -1260,8 +1262,32 @@
   const csvSplit = line => { const out = []; let cur = '', q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (ch === '"') { if (q && line[i + 1] === '"') { cur += '"'; i++; } else q = !q; } else if (ch === ',' && !q) { out.push(cur); cur = ''; } else cur += ch; } out.push(cur); return out; };
   const moneyNum = v => { if (v == null) return null; const n = parseFloat(String(v).replace(/[^0-9.\-]/g, '')); return Number.isFinite(n) ? n : null; };
   const isNumCell = c => /^[$€£]?\s*-?[\d,]+(\.\d+)?$/.test(c.trim());
+  function parseHomeDepot(lines) {
+    const hi = lines.findIndex(l => /^"?Date"?,"?Store Number"?,"?Transaction ID"?/i.test(l)); if (hi < 0) return null;
+    const header = csvSplit(lines[hi]).map(c => c.trim().toLowerCase()); const I = n => header.indexOf(n.toLowerCase());
+    const c = { date: I('Date'), tx: I('Transaction ID'), job: I('Job Name'), sku: I('SKU Number'), desc: I('SKU Description'), qty: I('Quantity'), net: I('Net Unit Price'), unit: I('Unit price'), isku: I('Internet SKU'), cls: I('Class Name'), dept: I('Department Name') };
+    if (c.desc < 0 || c.qty < 0) return null;
+    const receipt = (lines.find(l => /^Receipt #/i.test(l)) || '').split(',')[1]?.trim() || '';
+    const out = [];
+    for (const l of lines.slice(hi + 1)) {
+      if (/^"?(Date"?,"?Store Number|Company|Phone Number|Source|Receipt #|Invoice Number|Export Date)/i.test(l)) continue;
+      const v = csvSplit(l).map(x => x.trim()); const name = v[c.desc]; if (!name) continue;
+      const cost = c.net >= 0 && v[c.net] ? moneyNum(v[c.net]) : moneyNum(v[c.unit]);
+      const d = v[c.date] && /^\d{4}-\d{2}-\d{2}/.test(v[c.date]) ? v[c.date].slice(0, 10) : '';
+      const ref = receipt ? `Receipt ${receipt}` : (c.tx >= 0 && v[c.tx] ? `Transaction ${v[c.tx]}` : '');
+      out.push({ name, qty: Math.max(1, Math.round(moneyNum(v[c.qty]) || 1)), cost: cost ?? 0, expected: 0, category: '', barcode: '', sku: v[c.sku] || '', date: d, link: c.isku >= 0 && v[c.isku] ? `https://www.homedepot.com/p/${v[c.isku]}` : '', refs: [ref + (d ? ` (${d})` : '')].filter(Boolean), job: c.job >= 0 ? v[c.job] : '', cls: c.cls >= 0 ? v[c.cls] : '' });
+    }
+    return out;
+  }
+  function combineBySku(rows) {
+    const m = new Map();
+    for (const r of rows) { const k = r.sku || r.name.toLowerCase(); const g = m.get(k); if (!g) { m.set(k, Object.assign({}, r, { refs: [...r.refs] })); continue; } const q = g.qty + r.qty; g.cost = (g.cost * g.qty + r.cost * r.qty) / q; g.qty = q; if (r.date && (!g.date || r.date < g.date)) g.date = r.date; g.refs.push(...r.refs); }
+    return [...m.values()];
+  }
   function parseImport(text) {
-    const lines = text.split(/\r?\n/).map(l => l.replace(/\s+$/, '')).filter(l => l.trim());
+    const lines = text.replace(/^\ufeff/, '').split(/\r?\n/).map(l => l.replace(/\s+$/, '')).filter(l => l.trim());
+    const hd = parseHomeDepot(lines);
+    if (hd) { const rows = $('#importCombine').checked ? combineBySku(hd) : hd; for (const r of rows) r.notes = [r.sku ? `HD SKU ${r.sku}` : '', r.cls, r.job ? `Job ${r.job}` : '', r.refs.length ? 'Invoices: ' + [...new Set(r.refs)].join('; ') : '', r.link].filter(Boolean).join(' · '); return rows; }
     const split = l => (l.includes('\t') ? l.split('\t') : l.includes(',') ? csvSplit(l) : l.split(/\s{2,}/)).map(c => c.trim());
     const rows = lines.map(split);
     const H = { name: /^(item|name|description|title|product)/i, qty: /^(qty|quantity|units|count|pcs)/i, cost: /^(cost|unit ?cost|price|unit ?price|buy|paid|each|rate)$/i, expected: /^(expected|sell|resale|asking|list ?price|retail|msrp)/i, category: /^(category|cat|type|dept)/i, barcode: /^(barcode|upc|ean|sku|code)/i, total: /^(total|amount|ext|line ?total)/i };
@@ -1318,18 +1344,21 @@
     importRows = parseImport($('#importText').value);
     const cat = $('#importCategory').value.trim();
     if (!importRows.length) { $('#importPreview').innerHTML = ''; $('#importStatus').textContent = 'No items recognized. Try one item per line: name, cost, qty.'; $('#importAddBtn').disabled = true; return; }
-    $('#importPreview').innerHTML = `<table class="imp-table"><thead><tr><th>Name</th><th>Qty</th><th>Cost/unit</th><th>Expected</th><th>Category</th><th></th></tr></thead><tbody>${importRows.map((r, i) => `<tr data-i="${i}"><td><input class="nm" value="${esc(r.name)}"></td><td><input class="n" type="number" min="1" step="1" value="${r.qty}"></td><td><input class="n" type="number" min="0" step="0.01" value="${r.cost}"></td><td><input class="n" type="number" min="0" step="0.01" value="${r.expected || ''}"></td><td><input value="${esc(r.category || cat)}"></td><td><span class="rm" title="Remove">✕</span></td></tr>`).join('')}</tbody></table>`;
+    const hasDate = importRows.some(r => r.date);
+    $('#importPreview').innerHTML = `<table class="imp-table"><thead><tr><th>Name</th><th>Qty</th><th>Cost/unit</th><th>Expected</th><th>Category</th>${hasDate ? '<th>Bought</th>' : ''}<th></th></tr></thead><tbody>${importRows.map((r, i) => `<tr data-i="${i}"><td><input class="nm" value="${esc(r.name)}"></td><td><input class="n" type="number" min="1" step="1" value="${r.qty}"></td><td><input class="n" type="number" min="0" step="0.01" value="${(+r.cost).toFixed(2)}"></td><td><input class="n" type="number" min="0" step="0.01" value="${r.expected || ''}"></td><td><input value="${esc(r.category || cat)}"></td>${hasDate ? `<td><input type="date" class="n" value="${esc(r.date || '')}"></td>` : ''}<td><span class="rm" title="Remove">✕</span></td></tr>`).join('')}</tbody></table>`;
     $$('#importPreview .rm').forEach(x => x.onclick = () => { x.closest('tr').remove(); $('#importStatus').textContent = `${$$('#importPreview tbody tr').length} items ready`; });
-    $('#importStatus').textContent = `${importRows.length} item${importRows.length === 1 ? '' : 's'} recognized. Fix anything in the table, then Add.`; $('#importAddBtn').disabled = false;
+    const isHd = importRows.some(r => r.link || (r.notes || '').startsWith('HD SKU'));
+    $('#importStatus').textContent = `${importRows.length} item${importRows.length === 1 ? '' : 's'} recognized${isHd ? ' from a Home Depot export' : ''}. Fix anything in the table, then Add.`; $('#importAddBtn').disabled = false;
   }
   $('#importParseBtn').onclick = previewImport;
   $('#importAddBtn').onclick = () => {
-    const date = $('#importDate').value || today(), paidWith = $('#importPaidWith').value, source = $('#importSource').value.trim();
+    const date = $('#importDate').value || today(), paidWith = $('#importPaidWith').value, source = $('#importSource').value.trim(), taxPct = num($('#importTax').value);
     let n = 0;
     for (const tr of $$('#importPreview tbody tr')) {
-      const [name, qty, cost, expected, category] = [...tr.querySelectorAll('input')].map(i => i.value.trim());
+      const [name, qty, cost, expected, category, rowDate] = [...tr.querySelectorAll('input')].map(i => i.value.trim());
       if (!name) continue;
-      state.items.push(normalize({ name, qty, buyPrice: cost, expectedPrice: expected, category, purchaseDate: date, paidWith, source, barcode: importRows[+tr.dataset.i]?.barcode || '' })); n++;
+      const r = importRows[+tr.dataset.i] || {}; const c = num(cost);
+      state.items.push(normalize({ name, qty, buyPrice: c, inboundCost: taxPct ? Math.round(c * taxPct) / 100 : 0, expectedPrice: expected, category: category || $('#importCategory').value.trim(), purchaseDate: rowDate || r.date || date, paidWith, source: source || (r.link ? 'Home Depot' : ''), barcode: r.barcode || '', notes: r.notes || '' })); n++;
     }
     save(); render(); closeModals(); toast(`Added ${n} item${n === 1 ? '' : 's'}`);
   };
