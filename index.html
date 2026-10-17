@@ -636,7 +636,7 @@
 <script>
 (() => {
   const KEY = 'resaleTracker.v1';
-  const VERSION = '3.2';
+  const VERSION = '3.3';
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
 
@@ -1557,7 +1557,7 @@
       const key = await inboxKey(state.settings.inboxKey, b64d(env.salt));
       const plain = new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64d(env.iv) }, key, b64d(env.ct)));
       const payload = JSON.parse(plain); const steps = Array.isArray(payload.steps) ? payload.steps : [payload];
-      let n = 0; for (const st of steps) { await applyBackup(st, 'merge'); n += st.items.length; }
+      let n = 0, skipped = 0; for (const st of steps) { if (st.since && state.settings.inboxApplied && st.since <= state.settings.inboxApplied) { skipped++; continue; } await applyBackup(st, 'merge'); n += st.items.length; }
       state.settings.inboxApplied = env.stamp; save(); render(); $('#inboxBar').classList.remove('show'); toast(`Applied: ${env.summary}`);
     } catch (e) { $('#inboxMsg').innerHTML = `<span class="neg-t">Could not apply. ${e.name === 'OperationError' ? 'Wrong passphrase? Check it in Settings.' : esc(e.message)}</span>`; }
     $('#inboxApply').disabled = false;
