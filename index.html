@@ -276,7 +276,8 @@
     .table-wrap { display: none; }
     .cards { display: block; }
     .grid { grid-template-columns: 1fr 1fr; }
-    .modal { padding: 0; align-items: stretch; }
+    .modal { padding: 0; align-items: stretch; background: var(--surface); overscroll-behavior: none; }
+    body.modal-open { overscroll-behavior: none; }
     .dialog { padding: 14px 14px calc(24px + env(safe-area-inset-bottom)); border-radius: 0; border: 0; max-width: none; min-height: 100%; box-shadow: none; }
     .dialog h3 { position: sticky; top: -14px; margin: -14px -14px 12px; padding: 12px 14px; background: var(--surface); border-bottom: 1px solid var(--border); z-index: 1; }
     .adj-add { grid-template-columns: 1fr 1fr; }
